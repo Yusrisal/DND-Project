@@ -84,7 +84,12 @@ load_config() {
 		: "${SSH_USER:?set SSH_USER in deploy/deploy.env, or clear SSH_HOST to deploy locally}"
 	fi
 	SSH_PORT=${SSH_PORT:-22}
-	REMOTE_DIR=${REMOTE_DIR:-/opt/dnd}
+	# In local mode, default REMOTE_DIR to repository root itself so all files (.env, code, builds) live in the same folder.
+	if [ "$LOCAL" = 1 ]; then
+		REMOTE_DIR=${REMOTE_DIR:-$ROOT}
+	else
+		REMOTE_DIR=${REMOTE_DIR:-/opt/dnd}
+	fi
 	SERVICE=${SERVICE:-dnd-api}
 	SERVICE_USER=${SERVICE_USER:-dnd}
 	HEALTH_URL=${HEALTH_URL:-http://localhost:8080/api/health}
@@ -200,7 +205,21 @@ cmd_setup() {
 	fi
 
 	say "installing the systemd unit"
-	put_file "$SCRIPT_DIR/dnd-api.service" "/tmp/$SERVICE.service" 
+	# Generate unit file with actual REMOTE_DIR and SERVICE_USER dynamically
+	UNIT_TMP="/tmp/$SERVICE.service"
+	sed -e "s|/opt/dnd|$REMOTE_DIR|g" \
+	    -e "s|User=dnd|User=$SERVICE_USER|g" \
+	    -e "s|Group=dnd|Group=$SERVICE_USER|g" \
+	    "$SCRIPT_DIR/dnd-api.service" > "$STAGE/$SERVICE.service" 2>/dev/null || \
+	sed -e "s|/opt/dnd|$REMOTE_DIR|g" \
+	    -e "s|User=dnd|User=$SERVICE_USER|g" \
+	    -e "s|Group=dnd|Group=$SERVICE_USER|g" \
+	    "$SCRIPT_DIR/dnd-api.service" > "/tmp/$SERVICE.service"
+
+	if [ -f "$STAGE/$SERVICE.service" ]; then
+		put_file "$STAGE/$SERVICE.service" "$UNIT_TMP"
+		rm -f "$STAGE/$SERVICE.service"
+	fi 
 	ssh_run "
 		set -eu
 		$SUDO install -m 644 /tmp/$SERVICE.service /etc/systemd/system/$SERVICE.service
