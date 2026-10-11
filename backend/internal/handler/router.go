@@ -198,6 +198,11 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	mux.HandleFunc("POST /api/maps/{id}/encounter/combatants", g.dm(combat.AddCombatant))
 	mux.HandleFunc("PUT /api/maps/{id}/encounter/combatants/{combatant}", g.dm(combat.SetInitiative))
 
+	// In production, serve the built frontend from WebDir for all non-API routes.
+	if cfg.WebDir != "" {
+		mux.Handle("/", spa(cfg.WebDir))
+	}
+
 	var root http.Handler = mux
 	root = middleware.Logger(root)
 	root = middleware.Recover(root)
