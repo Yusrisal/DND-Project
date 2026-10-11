@@ -31,7 +31,7 @@ CREATE TABLE character_proficiencies (
     CONSTRAINT fk_character_proficiencies_character FOREIGN KEY (character_id) REFERENCES characters (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- One encounter per map at a time; active is cleared when combat ends.
+-- One encounter per map at a time - active is cleared when combat ends.
 CREATE TABLE encounters (
     id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     map_id     BIGINT UNSIGNED NOT NULL,
