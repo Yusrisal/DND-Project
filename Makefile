@@ -1,4 +1,5 @@
 .PHONY: api web migrate-up migrate-down migrate-status build tidy check
+.PHONY: deploy deploy-setup deploy-status deploy-logs deploy-rollback
 
 # Dev: run `make api` and `make web` in two shells.
 api:
@@ -29,3 +30,20 @@ tidy:
 check:
 	cd backend && go vet ./...
 	cd frontend && npm run typecheck
+
+# Deployment to the homeserver. Configure deploy/deploy.env first; see
+# docs/deployment.md.
+deploy:
+	./deploy/dnd-deploy release
+
+deploy-setup:
+	./deploy/dnd-deploy setup
+
+deploy-status:
+	./deploy/dnd-deploy status
+
+deploy-logs:
+	./deploy/dnd-deploy logs 100
+
+deploy-rollback:
+	./deploy/dnd-deploy rollback

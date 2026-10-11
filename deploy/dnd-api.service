@@ -1,15 +1,15 @@
 # /etc/systemd/system/dnd-api.service
 #
-#   sudo cp deploy/dnd-api.service /etc/systemd/system/
-#   sudo systemctl daemon-reload
-#   sudo systemctl enable --now dnd-api
+# Installed by `./deploy/dnd-deploy setup`. The unit serves the API, the
+# websocket and the built frontend on one port, so the Cloudflare Tunnel needs
+# one ingress rule pointing at http://localhost:8080.
 #
-# The unit serves the API, the websocket and the built frontend on one port.
-# Point the Cloudflare Tunnel ingress at http://localhost:8080.
+# ExecStart goes through the `current` symlink rather than a release directory,
+# which is what lets a rollback be a symlink swap and a restart.
 
 [Unit]
 Description=DnD table API and websocket gateway
-After=network-online.target mysql.service
+After=network-online.target mysql.service mariadb.service
 Wants=network-online.target
 
 [Service]
@@ -18,7 +18,7 @@ User=dnd
 Group=dnd
 WorkingDirectory=/opt/dnd
 EnvironmentFile=/opt/dnd/.env
-ExecStart=/opt/dnd/bin/dnd-api
+ExecStart=/opt/dnd/current/bin/dnd-api
 Restart=on-failure
 RestartSec=5s
 

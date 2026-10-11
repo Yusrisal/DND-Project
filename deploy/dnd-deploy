@@ -1,0 +1,358 @@
+#!/bin/sh
+#
+# dnd-deploy — build and ship this app to the homeserver.
+#
+# Commands:
+#   setup            one-time: create the service user, directories and unit
+#   release          build, upload, migrate, switch, restart, verify  (the usual one)
+#   rollback         point current at the previous release and restart
+#   status           service state, live release, health, migration version
+#   releases         list what is on the server
+#   logs [n]         last n journal lines, default 80
+#   follow           tail the journal
+#   migrate [args]   run the migration CLI remotely: up, down 1, status
+#   restart          restart the service and re-check health
+#   build            build locally into .deploy-stage without uploading
+#   ssh              open a shell in the remote directory
+#
+# Only ssh, scp and tar are needed locally, so this runs from Git Bash on
+# Windows as well as from Linux. Run it from the repository root, and configure
+# deploy/deploy.env first.
+#
+# Releases sit side by side and are switched with a symlink:
+#
+#   /opt/dnd/
+#     .env                     configuration, never overwritten by a deploy
+#     current -> releases/20261011-143000
+#     releases/<timestamp>/bin/{dnd-api,dnd-migrate}
+#     releases/<timestamp>/dist/
+#
+# which is what makes a rollback a symlink swap rather than a rebuild.
+#
+# A release that fails its health check rolls itself back. The schema does not:
+# migrations run before the switch and are left applied, because automatically
+# reversing a migration is how data goes missing.
+
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+ROOT=$(dirname "$SCRIPT_DIR")
+CONFIG="$SCRIPT_DIR/deploy.env"
+
+RED=''
+GREEN=''
+YELLOW=''
+DIM=''
+RESET=''
+if [ -t 1 ]; then
+	RED=$(printf '\033[31m')
+	GREEN=$(printf '\033[32m')
+	YELLOW=$(printf '\033[33m')
+	DIM=$(printf '\033[2m')
+	RESET=$(printf '\033[0m')
+fi
+
+say()  { printf '%s==>%s %s\n' "$GREEN" "$RESET" "$*"; }
+warn() { printf '%s warn%s %s\n' "$YELLOW" "$RESET" "$*" >&2; }
+die()  { printf '%serror%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
+run()  { printf '%s  $ %s%s\n' "$DIM" "$*" "$RESET"; }
+
+# usage prints the header comment above, stopping at the first line of code.
+usage() {
+	awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
+	exit "${1:-0}"
+}
+
+# ---------------------------------------------------------------- configuration
+
+load_config() {
+	[ -f "$CONFIG" ] || die "no $CONFIG — copy deploy/deploy.env.example to deploy/deploy.env and fill it in"
+
+	# shellcheck disable=SC1090
+	. "$CONFIG"
+
+	: "${SSH_HOST:?set SSH_HOST in deploy/deploy.env}"
+	: "${SSH_USER:?set SSH_USER in deploy/deploy.env}"
+	SSH_PORT=${SSH_PORT:-22}
+	REMOTE_DIR=${REMOTE_DIR:-/opt/dnd}
+	SERVICE=${SERVICE:-dnd-api}
+	SERVICE_USER=${SERVICE_USER:-dnd}
+	HEALTH_URL=${HEALTH_URL:-http://localhost:8080/api/health}
+	KEEP_RELEASES=${KEEP_RELEASES:-5}
+	SUDO=${SUDO-sudo}
+	GOOS_TARGET=${GOOS_TARGET:-linux}
+	GOARCH_TARGET=${GOARCH_TARGET:-amd64}
+
+	TARGET="$SSH_USER@$SSH_HOST"
+	STAGE="$ROOT/.deploy-stage"
+}
+
+# ssh_run executes a remote command. Commands that use sudo get a tty, so a
+# password prompt is visible rather than hanging in the dark.
+ssh_run() {
+	if [ -n "$SUDO" ]; then
+		ssh -t -p "$SSH_PORT" "$TARGET" "$@"
+	else
+		ssh -p "$SSH_PORT" "$TARGET" "$@"
+	fi
+}
+
+ssh_quiet() { ssh -p "$SSH_PORT" "$TARGET" "$@"; }
+
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 is not installed locally"; }
+
+# as_service runs a command on the remote as the service account.
+as_service() { printf '%s -u %s %s' "$SUDO" "$SERVICE_USER" "$1"; }
+
+# --------------------------------------------------------------------- building
+
+cmd_build() {
+	need go
+	need npm
+
+	say "building backend for $GOOS_TARGET/$GOARCH_TARGET"
+	rm -rf "$STAGE"
+	mkdir -p "$STAGE/bin"
+
+	# CGO off keeps the binary static, so it does not care what the server has
+	# installed beyond a kernel.
+	( cd "$ROOT/backend" && \
+		CGO_ENABLED=0 GOOS="$GOOS_TARGET" GOARCH="$GOARCH_TARGET" \
+		go build -trimpath -ldflags "-s -w" -o "$STAGE/bin/dnd-api" ./cmd/server )
+	( cd "$ROOT/backend" && \
+		CGO_ENABLED=0 GOOS="$GOOS_TARGET" GOARCH="$GOARCH_TARGET" \
+		go build -trimpath -ldflags "-s -w" -o "$STAGE/bin/dnd-migrate" ./cmd/migrate )
+
+	say "building frontend"
+	( cd "$ROOT/frontend" && npm ci --no-fund --no-audit && npm run build )
+	cp -r "$ROOT/frontend/dist" "$STAGE/dist"
+
+	say "staged in .deploy-stage"
+	du -sh "$STAGE" 2>/dev/null || true
+}
+
+# --------------------------------------------------------------------- remote
+
+cmd_setup() {
+	say "preparing $TARGET:$REMOTE_DIR"
+
+	ssh_run "
+		set -eu
+		$SUDO id -u '$SERVICE_USER' >/dev/null 2>&1 || \
+			$SUDO useradd --system --home '$REMOTE_DIR' --shell /usr/sbin/nologin '$SERVICE_USER'
+		$SUDO install -d -o '$SERVICE_USER' -g '$SERVICE_USER' '$REMOTE_DIR' '$REMOTE_DIR/releases'
+		echo 'directories ready'
+	"
+
+	if ssh_quiet "test -f '$REMOTE_DIR/.env'"; then
+		say ".env already present, left alone"
+	else
+		warn "$REMOTE_DIR/.env does not exist yet"
+		printf '\nCreate it from deploy/env.production.example, then run setup again:\n\n'
+		printf '  scp -P %s deploy/env.production.example %s:/tmp/dnd.env\n' "$SSH_PORT" "$TARGET"
+		printf '  ssh -p %s %s "sudo install -o %s -g %s -m 600 /tmp/dnd.env %s/.env && sudo nano %s/.env"\n\n' \
+			"$SSH_PORT" "$TARGET" "$SERVICE_USER" "$SERVICE_USER" "$REMOTE_DIR" "$REMOTE_DIR"
+		return 1
+	fi
+
+	say "installing the systemd unit"
+	scp -P "$SSH_PORT" "$SCRIPT_DIR/dnd-api.service" "$TARGET:/tmp/$SERVICE.service" >/dev/null
+	ssh_run "
+		set -eu
+		$SUDO install -m 644 /tmp/$SERVICE.service /etc/systemd/system/$SERVICE.service
+		rm -f /tmp/$SERVICE.service
+		$SUDO systemctl daemon-reload
+		$SUDO systemctl enable $SERVICE
+		echo 'unit installed and enabled'
+	"
+
+	say "setup done — now run: ./deploy/dnd-deploy release"
+}
+
+cmd_upload() {
+	[ -d "$STAGE" ] || die "nothing staged — run build first"
+
+	STAMP=$(date +%Y%m%d-%H%M%S)
+	RELEASE="$REMOTE_DIR/releases/$STAMP"
+	ARCHIVE="$ROOT/.deploy-stage.tar.gz"
+
+	say "packing release $STAMP"
+	tar -czf "$ARCHIVE" -C "$STAGE" bin dist
+
+	say "uploading to $TARGET"
+	scp -P "$SSH_PORT" "$ARCHIVE" "$TARGET:/tmp/dnd-$STAMP.tar.gz" >/dev/null
+	rm -f "$ARCHIVE"
+
+	ssh_run "
+		set -eu
+		$SUDO install -d -o '$SERVICE_USER' -g '$SERVICE_USER' '$RELEASE'
+		$SUDO tar -xzf '/tmp/dnd-$STAMP.tar.gz' -C '$RELEASE'
+		$SUDO chown -R '$SERVICE_USER:$SERVICE_USER' '$RELEASE'
+		$SUDO chmod +x '$RELEASE/bin/dnd-api' '$RELEASE/bin/dnd-migrate'
+		rm -f '/tmp/dnd-$STAMP.tar.gz'
+		echo 'unpacked $RELEASE'
+	"
+}
+
+cmd_release() {
+	cmd_build
+	cmd_upload
+
+	# Remember where current points, so a failed health check can go straight back.
+	PREVIOUS=$(ssh_quiet "readlink -f '$REMOTE_DIR/current' 2>/dev/null || true")
+
+	say "applying migrations with the new binary"
+	# Run from REMOTE_DIR so the binary finds .env the same way the service does.
+	ssh_run "cd '$REMOTE_DIR' && $(as_service "'$RELEASE/bin/dnd-migrate'") up"
+
+	say "switching current -> $RELEASE"
+	ssh_run "
+		set -eu
+		$SUDO ln -sfn '$RELEASE' '$REMOTE_DIR/.current.new'
+		$SUDO mv -Tf '$REMOTE_DIR/.current.new' '$REMOTE_DIR/current'
+		$SUDO chown -h '$SERVICE_USER:$SERVICE_USER' '$REMOTE_DIR/current'
+		$SUDO systemctl restart '$SERVICE'
+	"
+
+	say "waiting for health"
+	if remote_healthy; then
+		say "${GREEN}healthy${RESET} — $STAMP is live"
+		prune_releases
+	else
+		warn "health check failed after the restart"
+		if [ -n "$PREVIOUS" ] && [ "$PREVIOUS" != "$RELEASE" ]; then
+			warn "rolling back to $PREVIOUS"
+			ssh_run "
+				set -eu
+				$SUDO ln -sfn '$PREVIOUS' '$REMOTE_DIR/.current.new'
+				$SUDO mv -Tf '$REMOTE_DIR/.current.new' '$REMOTE_DIR/current'
+				$SUDO systemctl restart '$SERVICE'
+			"
+			warn "rolled back. The schema was NOT rolled back — check it by hand."
+		fi
+		printf '\nLast 40 log lines:\n'
+		cmd_logs 40 || true
+		exit 1
+	fi
+}
+
+# remote_healthy polls the health endpoint for up to 30 seconds.
+remote_healthy() {
+	i=0
+	while [ "$i" -lt 15 ]; do
+		if ssh_quiet "curl -fsS --max-time 3 '$HEALTH_URL'" 2>/dev/null | grep -q '"ok"'; then
+			return 0
+		fi
+		i=$((i + 1))
+		sleep 2
+	done
+	return 1
+}
+
+prune_releases() {
+	say "keeping the newest $KEEP_RELEASES releases"
+	ssh_run "
+		set -eu
+		cd '$REMOTE_DIR/releases'
+		keep=\$(readlink -f '$REMOTE_DIR/current')
+		ls -1 | sort -r | tail -n +\$(( $KEEP_RELEASES + 1 )) | while read -r old; do
+			[ \"\$(readlink -f \"\$old\")\" = \"\$keep\" ] && continue
+			$SUDO rm -rf -- \"\$old\"
+			echo \"removed \$old\"
+		done
+		true
+	"
+}
+
+cmd_rollback() {
+	say "looking for the previous release"
+	PREVIOUS=$(ssh_quiet "
+		cd '$REMOTE_DIR/releases' 2>/dev/null || exit 0
+		current=\$(basename \"\$(readlink -f '$REMOTE_DIR/current' 2>/dev/null || echo none)\")
+		ls -1 | sort -r | grep -v \"^\$current\$\" | head -1
+	")
+	[ -n "$PREVIOUS" ] || die "no earlier release to roll back to"
+
+	say "rolling back to $PREVIOUS"
+	ssh_run "
+		set -eu
+		$SUDO ln -sfn '$REMOTE_DIR/releases/$PREVIOUS' '$REMOTE_DIR/.current.new'
+		$SUDO mv -Tf '$REMOTE_DIR/.current.new' '$REMOTE_DIR/current'
+		$SUDO systemctl restart '$SERVICE'
+	"
+
+	if remote_healthy; then
+		say "healthy on $PREVIOUS"
+	else
+		die "still unhealthy after rolling back — check the logs"
+	fi
+
+	warn "the database schema was not touched. If the release you backed out of"
+	warn "added migrations, roll them back yourself: ./deploy/dnd-deploy migrate down 1"
+}
+
+cmd_status() {
+	say "service"
+	ssh_quiet "systemctl is-active '$SERVICE' || true; systemctl is-enabled '$SERVICE' || true"
+
+	say "release"
+	ssh_quiet "readlink -f '$REMOTE_DIR/current' 2>/dev/null || echo 'none — never deployed'"
+
+	say "health"
+	ssh_quiet "curl -fsS --max-time 3 '$HEALTH_URL' || echo 'unreachable'"
+	printf '\n'
+
+	say "migrations"
+	ssh_run "cd '$REMOTE_DIR' && $(as_service "'$REMOTE_DIR/current/bin/dnd-migrate'") status" || true
+}
+
+cmd_releases() {
+	ssh_quiet "
+		cd '$REMOTE_DIR/releases' 2>/dev/null || { echo 'none'; exit 0; }
+		current=\$(basename \"\$(readlink -f '$REMOTE_DIR/current' 2>/dev/null || echo none)\")
+		ls -1 | sort -r | while read -r r; do
+			[ \"\$r\" = \"\$current\" ] && echo \"\$r  <- current\" || echo \"\$r\"
+		done
+	"
+}
+
+cmd_logs() {
+	lines=${1:-80}
+	ssh_quiet "journalctl -u '$SERVICE' -n '$lines' --no-pager"
+}
+
+cmd_follow() { ssh_quiet "journalctl -u '$SERVICE' -f --no-pager"; }
+
+cmd_migrate() {
+	[ $# -gt 0 ] || set -- status
+	ssh_run "cd '$REMOTE_DIR' && $(as_service "'$REMOTE_DIR/current/bin/dnd-migrate'") $*"
+}
+
+cmd_restart() {
+	ssh_run "$SUDO systemctl restart '$SERVICE'"
+	remote_healthy && say "healthy" || die "unhealthy after restart — see logs"
+}
+
+cmd_shell() { ssh -t -p "$SSH_PORT" "$TARGET" "cd '$REMOTE_DIR' && exec \$SHELL -l"; }
+
+# ------------------------------------------------------------------------ main
+
+[ $# -gt 0 ] || usage 1
+COMMAND=$1
+shift
+
+case "$COMMAND" in
+	build)            load_config; cmd_build ;;
+	setup)            load_config; cmd_setup ;;
+	release|deploy)   load_config; cmd_release ;;
+	rollback)         load_config; cmd_rollback ;;
+	status)           load_config; cmd_status ;;
+	releases)         load_config; cmd_releases ;;
+	logs)             load_config; cmd_logs "$@" ;;
+	follow|tail)      load_config; cmd_follow ;;
+	migrate)          load_config; cmd_migrate "$@" ;;
+	restart)          load_config; cmd_restart ;;
+	ssh)              load_config; cmd_shell ;;
+	-h|--help|help)   usage 0 ;;
+	*)                die "unknown command: $COMMAND (try --help)" ;;
+esac

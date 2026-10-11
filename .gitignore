@@ -14,3 +14,8 @@ node_modules/
 .idea/
 .vscode/
 .DS_Store
+
+# Deploy
+/deploy/deploy.env
+/.deploy-stage/
+/.deploy-stage.tar.gz

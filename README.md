@@ -94,3 +94,18 @@ make web              run the frontend         make migrate-down    roll back on
 make build            release build            make migrate-status  version + pending
 make check            vet + typecheck          make tidy            gofmt + go mod tidy
 ```
+
+## Deploying
+
+```bash
+cp deploy/deploy.env.example deploy/deploy.env   # name your server
+./deploy/dnd-deploy setup                        # one time
+./deploy/dnd-deploy release                      # every time after that
+```
+
+`release` cross-compiles, uploads a new timestamped release, migrates, switches
+a symlink, restarts and checks health — rolling itself back if the health check
+fails. `rollback`, `status`, `logs` and `migrate` are the other commands worth
+knowing. Needs only ssh, scp and tar locally, so it works from Git Bash.
+
+Full runbook, including the by-hand version: [deployment.md](docs/deployment.md).
