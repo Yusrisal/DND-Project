@@ -29,7 +29,9 @@ tidy:
 
 check:
 	cd backend && go vet ./...
+	cd backend && go test ./...
 	cd frontend && npm run typecheck
+	cd frontend && npm test
 
 # Deployment to the homeserver. Configure deploy/deploy.env first; see
 # docs/deployment.md.

@@ -73,15 +73,21 @@ them in production.
 ## Checks
 
 ```bash
-make check    # go vet + tsc --noEmit
+make check    # go vet + go test + tsc --noEmit + npm test
 make tidy     # go mod tidy + gofmt -w
 ```
 
 The tests that exist cover the pieces with real logic and no database: the dice
 evaluator (`internal/service/dice_test.go`), the ability modifier rule
-(`internal/model/character_model_test.go`), and attack expressions plus critical
-damage doubling (`internal/service/combat_service_test.go`). Run them with
+(`internal/model/character_model_test.go`), attack expressions plus critical
+damage doubling (`internal/service/combat_service_test.go`), and list-query
+clamping (`internal/model/pagination_model_test.go`). Run them with
 `go test ./...`.
+
+The frontend has one test file, `src/components/wiki-format.test.mjs`, covering
+coin formatting and wiki search. It runs on Node's own test runner with
+`--experimental-strip-types`, so there is no test framework to install — `npm
+test` is the whole setup.
 
 The service layer is the useful seam for more: it holds the validation and
 permission rules and depends only on a repository.

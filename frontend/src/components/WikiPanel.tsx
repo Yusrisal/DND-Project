@@ -7,6 +7,7 @@ import type {
   Monster,
   StatusEffect,
 } from '../api/types'
+import { matches, price, sellPrice } from './wiki-format'
 import { GLOSSARY, HOW_TO_PLAY } from './wiki-rules'
 import type { GlossaryEntry } from './wiki-rules'
 
@@ -27,19 +28,6 @@ const SECTIONS: { id: WikiSection; label: string }[] = [
   { id: 'statuses', label: 'conditions' },
 ]
 
-/** Prices are stored in copper. 100cp = 1gp, 10cp = 1sp. */
-const price = (cp: number) => {
-  if (cp <= 0) return 'free'
-  if (cp >= 100) return `${(cp / 100).toFixed(2).replace(/\.?0+$/, '')} gp`
-  if (cp >= 10) return `${(cp / 10).toFixed(1).replace(/\.0$/, '')} sp`
-  return `${cp} cp`
-}
-
-const matches = (query: string, ...fields: (string | number)[]) => {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return fields.some((field) => String(field).toLowerCase().includes(q))
-}
 
 /**
  * The wiki is a read-only reference built from the same endpoints the DM tools
@@ -186,7 +174,7 @@ export function WikiPanel({ campaignId, onError }: Props) {
                     </span>
                     <p className="hint wiki-body">
                       {price(item.cost_cp)}
-                      {item.cost_cp > 0 && ` · sells for ${price(Math.max(1, Math.floor(item.cost_cp / 2)))}`}
+                      {item.cost_cp > 0 && ` · sells for ${price(sellPrice(item.cost_cp))}`}
                       {item.weight > 0 && ` · ${item.weight} lb`}
                       {item.damage && ` · ${item.damage} ${item.damage_type}`}
                       {item.attack_bonus !== 0 && ` · ${item.attack_bonus > 0 ? '+' : ''}${item.attack_bonus} to hit`}
