@@ -108,6 +108,7 @@ func (r *CompendiumRepository) DeleteEnvironment(ctx context.Context, id int64) 
 
 const compendiumItemColumns = `id, campaign_id, name, category, rarity, cost_cp, weight, attack_bonus, damage, damage_type, description,
 	req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id,
+	set_name, set_piece, set_bonus_2pc, set_bonus_4pc,
 	created_at, updated_at`
 
 func scanCompendiumItem(row interface{ Scan(...any) error }) (model.CompendiumItem, error) {
@@ -115,6 +116,7 @@ func scanCompendiumItem(row interface{ Scan(...any) error }) (model.CompendiumIt
 	err := row.Scan(&i.ID, &i.CampaignID, &i.Name, &i.Category, &i.Rarity, &i.CostCP, &i.Weight,
 		&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description,
 		&i.ReqLevel, &i.ReqClass, &i.ReqStr, &i.ReqDex, &i.ReqCon, &i.ReqInt, &i.ReqWis, &i.ReqCha, &i.TeachesSkillID,
+		&i.SetName, &i.SetPiece, &i.SetBonus2pc, &i.SetBonus4pc,
 		&i.CreatedAt, &i.UpdatedAt)
 	return i, err
 }
@@ -168,10 +170,12 @@ func (r *CompendiumRepository) CreateItem(ctx context.Context, in model.Compendi
 	}
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO compendium_items (campaign_id, name, category, rarity, cost_cp, weight, attack_bonus, damage, damage_type, description,
-			req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id,
+			set_name, set_piece, set_bonus_2pc, set_bonus_4pc)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		in.CampaignID, in.Name, in.Category, in.Rarity, in.CostCP, in.Weight, in.AttackBonus, in.Damage, in.DamageType, in.Description,
-		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID)
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID,
+		in.SetName, in.SetPiece, in.SetBonus2pc, in.SetBonus4pc)
 	if err != nil {
 		return 0, err
 	}
@@ -184,10 +188,12 @@ func (r *CompendiumRepository) UpdateItem(ctx context.Context, id int64, in mode
 	}
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE compendium_items SET name = ?, category = ?, rarity = ?, cost_cp = ?, weight = ?, attack_bonus = ?, damage = ?, damage_type = ?, description = ?,
-			req_level = ?, req_class = ?, req_str = ?, req_dex = ?, req_con = ?, req_int = ?, req_wis = ?, req_cha = ?, teaches_skill_id = ?
+			req_level = ?, req_class = ?, req_str = ?, req_dex = ?, req_con = ?, req_int = ?, req_wis = ?, req_cha = ?, teaches_skill_id = ?,
+			set_name = ?, set_piece = ?, set_bonus_2pc = ?, set_bonus_4pc = ?
 		 WHERE id = ?`,
 		in.Name, in.Category, in.Rarity, in.CostCP, in.Weight, in.AttackBonus, in.Damage, in.DamageType, in.Description,
-		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID, id)
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID,
+		in.SetName, in.SetPiece, in.SetBonus2pc, in.SetBonus4pc, id)
 	if err != nil {
 		return err
 	}

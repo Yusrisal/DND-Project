@@ -497,6 +497,36 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
 
       {tab === 'inventory' && (
         <div className="list">
+          {/* Active Equipment Set Combo Bonuses */}
+          {(() => {
+            const equippedItems = items.filter((i) => i.equipped && i.set_name)
+            const setCounts = new Map<string, { count: number; b2: string; b4: string }>()
+            equippedItems.forEach((i) => {
+              if (!i.set_name) return
+              const entry = setCounts.get(i.set_name) ?? { count: 0, b2: i.set_bonus_2pc || '', b4: i.set_bonus_4pc || '' }
+              entry.count++
+              setCounts.set(i.set_name, entry)
+            })
+
+            const activeSets = Array.from(setCounts.entries()).filter(([_, d]) => d.count >= 2)
+            if (activeSets.length === 0) return null
+
+            return (
+              <div className="p-2 mb-2 bg-[#121c24] border-2 border-[#66fcf1] rounded space-y-1">
+                <span className="text-[10px] font-bold text-[#66fcf1] uppercase block tracking-wider">
+                  ⚡ Active Set Combo Bonuses:
+                </span>
+                {activeSets.map(([sName, data]) => (
+                  <div key={sName} className="text-[10px] text-slate-300">
+                    <span className="font-bold text-white">{sName} ({data.count} pcs): </span>
+                    {data.count >= 2 && <span className="text-amber-300 mr-2">[2pc] {data.b2}</span>}
+                    {data.count >= 4 && <span className="text-emerald-400 font-semibold">[4pc] {data.b4}</span>}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
+
           <header>
             <h3>Carried</h3>
             <button className="btn-add" onClick={addItem}>

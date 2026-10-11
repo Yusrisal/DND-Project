@@ -223,6 +223,7 @@ func (r *CharacterRepository) ShortRest(ctx context.Context, id int64, hitDiceSp
 const itemColumns = `id, character_id, name, quantity, weight, cost_cp, equipped,
 	attack_bonus, damage, damage_type, description,
 	req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id,
+	set_name, set_piece, set_bonus_2pc, set_bonus_4pc,
 	created_at, updated_at`
 
 func (r *CharacterRepository) Items(ctx context.Context, characterID int64) ([]model.CharacterItem, error) {
@@ -239,6 +240,7 @@ func (r *CharacterRepository) Items(ctx context.Context, characterID int64) ([]m
 		if err := rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.CostCP, &i.Equipped,
 			&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description,
 			&i.ReqLevel, &i.ReqClass, &i.ReqStr, &i.ReqDex, &i.ReqCon, &i.ReqInt, &i.ReqWis, &i.ReqCha, &i.TeachesSkillID,
+			&i.SetName, &i.SetPiece, &i.SetBonus2pc, &i.SetBonus4pc,
 			&i.CreatedAt, &i.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -254,11 +256,13 @@ func (r *CharacterRepository) CreateItem(ctx context.Context, characterID int64,
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO character_items (character_id, name, quantity, weight, cost_cp, equipped,
 			attack_bonus, damage, damage_type, description,
-			req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id,
+			set_name, set_piece, set_bonus_2pc, set_bonus_4pc)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		characterID, in.Name, in.Quantity, in.Weight, in.CostCP, in.Equipped,
 		in.AttackBonus, in.Damage, in.DamageType, in.Description,
-		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID)
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID,
+		in.SetName, in.SetPiece, in.SetBonus2pc, in.SetBonus4pc)
 	if err != nil {
 		return 0, err
 	}
@@ -272,11 +276,13 @@ func (r *CharacterRepository) UpdateItem(ctx context.Context, id int64, in model
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE character_items SET name = ?, quantity = ?, weight = ?, cost_cp = ?, equipped = ?,
 			attack_bonus = ?, damage = ?, damage_type = ?, description = ?,
-			req_level = ?, req_class = ?, req_str = ?, req_dex = ?, req_con = ?, req_int = ?, req_wis = ?, req_cha = ?, teaches_skill_id = ?
+			req_level = ?, req_class = ?, req_str = ?, req_dex = ?, req_con = ?, req_int = ?, req_wis = ?, req_cha = ?, teaches_skill_id = ?,
+			set_name = ?, set_piece = ?, set_bonus_2pc = ?, set_bonus_4pc = ?
 		 WHERE id = ?`,
 		in.Name, in.Quantity, in.Weight, in.CostCP, in.Equipped,
 		in.AttackBonus, in.Damage, in.DamageType, in.Description,
-		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID, id)
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID,
+		in.SetName, in.SetPiece, in.SetBonus2pc, in.SetBonus4pc, id)
 	if err != nil {
 		return err
 	}

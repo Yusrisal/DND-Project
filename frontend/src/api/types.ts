@@ -315,6 +315,10 @@ export type CharacterItem = {
   req_wis: number
   req_cha: number
   teaches_skill_id?: number | null
+  set_name?: string
+  set_piece?: string
+  set_bonus_2pc?: string
+  set_bonus_4pc?: string
 }
 
 export type ClassSkill = {

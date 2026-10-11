@@ -50,6 +50,10 @@ type CompendiumItem struct {
 	ReqWis         int       `json:"req_wis"`
 	ReqCha         int       `json:"req_cha"`
 	TeachesSkillID *int64    `json:"teaches_skill_id"`
+	SetName        string    `json:"set_name"`
+	SetPiece       string    `json:"set_piece"`
+	SetBonus2pc    string    `json:"set_bonus_2pc"`
+	SetBonus4pc    string    `json:"set_bonus_4pc"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
 }
@@ -74,6 +78,10 @@ type CompendiumItemInput struct {
 	ReqWis         int     `json:"req_wis"`
 	ReqCha         int     `json:"req_cha"`
 	TeachesSkillID *int64  `json:"teaches_skill_id"`
+	SetName        string  `json:"set_name"`
+	SetPiece       string  `json:"set_piece"`
+	SetBonus2pc    string  `json:"set_bonus_2pc"`
+	SetBonus4pc    string  `json:"set_bonus_4pc"`
 }
 
 type MonsterDrop struct {
