@@ -4,7 +4,6 @@ import { AccountBar } from './AccountBar'
 import { CharacterSheetPanel } from './CharacterSheetPanel'
 import { HandoutsPanel } from './HandoutsPanel'
 import { ShopPanel } from './ShopPanel'
-import { WikiPanel } from './WikiPanel'
 
 type Props = {
   campaignId: number | null
@@ -17,16 +16,16 @@ type Props = {
   targetTokenId: number | null
   onRoll: (expression: string, label: string, characterId: number | null) => void
   onAttack: (request: { item_id: number; target_token_id: number }) => void
+  onOpenWiki: () => void
   onError: (error: unknown) => void
 }
 
-type Tab = 'sheet' | 'shop' | 'lore' | 'wiki'
+type Tab = 'sheet' | 'shop' | 'lore'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'sheet', label: 'sheet' },
   { id: 'shop', label: 'shop' },
   { id: 'lore', label: 'lore' },
-  { id: 'wiki', label: 'wiki' },
 ]
 
 export function PlayerSidebar({
@@ -40,13 +39,14 @@ export function PlayerSidebar({
   targetTokenId,
   onRoll,
   onAttack,
+  onOpenWiki,
   onError,
 }: Props) {
   const [tab, setTab] = useState<Tab>('sheet')
 
   return (
     <aside className="sidebar">
-      <AccountBar user={user} onLogout={onLogout} />
+      <AccountBar user={user} onLogout={onLogout} onOpenWiki={onOpenWiki} />
 
       <div className="tabs" style={{ marginBottom: '6px' }}>
         {TABS.map(({ id, label }) => (
@@ -116,8 +116,6 @@ export function PlayerSidebar({
           onError={onError}
         />
       )}
-
-      {tab === 'wiki' && <WikiPanel campaignId={campaignId} onError={onError} />}
     </aside>
   )
 }

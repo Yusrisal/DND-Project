@@ -3,9 +3,10 @@ import type { User } from '../api/types'
 type Props = {
   user: User
   onLogout: () => void
+  onOpenWiki: () => void
 }
 
-export function AccountBar({ user, onLogout }: Props) {
+export function AccountBar({ user, onLogout, onOpenWiki }: Props) {
   return (
     <div className="flex items-center justify-between px-3 py-2 bg-[#08090d] border-b-2 border-[#2b3145] text-xs">
       <div className="flex items-center gap-2">
@@ -21,12 +22,21 @@ export function AccountBar({ user, onLogout }: Props) {
           [{user.role}]
         </span>
       </div>
-      <button
-        onClick={onLogout}
-        className="text-[10px] text-[#ff7979] hover:text-[#eb4d4b] uppercase font-bold tracking-wider bg-transparent border-none cursor-pointer"
-      >
-        [EXIT]
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onOpenWiki}
+          title="Rules, glossary and catalogues"
+          className="text-[10px] text-[#66fcf1] hover:text-white uppercase font-bold tracking-wider bg-transparent border-none cursor-pointer"
+        >
+          [WIKI]
+        </button>
+        <button
+          onClick={onLogout}
+          className="text-[10px] text-[#ff7979] hover:text-[#eb4d4b] uppercase font-bold tracking-wider bg-transparent border-none cursor-pointer"
+        >
+          [EXIT]
+        </button>
+      </div>
     </div>
   )
 }

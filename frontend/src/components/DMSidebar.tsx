@@ -8,9 +8,8 @@ import { HandoutsPanel } from './HandoutsPanel'
 import { InvitePanel } from './InvitePanel'
 import { SavepointsPanel } from './SavepointsPanel'
 import { ShopPanel } from './ShopPanel'
-import { WikiPanel } from './WikiPanel'
 
-type Tab = 'board' | 'party' | 'bestiary' | 'shop' | 'dashboard' | 'lore' | 'wiki' | 'saves' | 'setup'
+type Tab = 'board' | 'party' | 'bestiary' | 'shop' | 'dashboard' | 'lore' | 'saves' | 'setup'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'board', label: 'board' },
@@ -19,7 +18,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'shop', label: 'shop' },
   { id: 'dashboard', label: 'tools' },
   { id: 'lore', label: 'lore' },
-  { id: 'wiki', label: 'wiki' },
   { id: 'saves', label: 'saves' },
   { id: 'setup', label: 'setup' },
 ]
@@ -57,6 +55,7 @@ type Props = {
   ownerName: (token: Token) => string
 
   activeTokenId: number | null
+  onOpenWiki: () => void
   onRoll: (expression: string, label: string, characterId: number | null) => void
   onAttack: (request: {
     item_id?: number
@@ -76,7 +75,7 @@ export function DMSidebar(props: Props) {
 
   return (
     <aside className="w-[380px] flex-shrink-0 bg-[#0f1118] border-r-4 border-[#2b3145] flex flex-col h-screen overflow-hidden text-[#c5c6c7] select-none">
-      <AccountBar user={props.user} onLogout={props.onLogout} />
+      <AccountBar user={props.user} onLogout={props.onLogout} onOpenWiki={props.onOpenWiki} />
 
       {/* 8-Bit Pixel Navigation Tabs */}
       <div className="grid grid-cols-4 gap-1.5 p-2 bg-[#08090d] border-b-2 border-[#2b3145]">
@@ -333,8 +332,6 @@ export function DMSidebar(props: Props) {
           onError={props.onError}
         />
       )}
-
-      {tab === 'wiki' && <WikiPanel campaignId={props.campaign?.id ?? null} onError={props.onError} />}
 
       {tab === 'saves' && (
         <SavepointsPanel

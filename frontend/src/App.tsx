@@ -12,6 +12,7 @@ import { MapCanvas } from './components/MapCanvas'
 import { MapFormModal, type MapFormValues } from './components/MapFormModal'
 import { PlayerSidebar } from './components/PlayerSidebar'
 import { TokenFormModal, type TokenFormValues } from './components/TokenFormModal'
+import { WikiPage } from './components/WikiPage'
 import { useAuth } from './hooks/useAuth'
 import { useSession } from './hooks/useSession'
 
@@ -48,6 +49,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   const [activeSkills, setActiveSkills] = useState<CharacterLearnedSkill[]>([])
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [route, setRoute] = useState(window.location.hash)
   // The token an attack lands on. Clicking the board picks it.
   const [targetTokenId, setTargetTokenId] = useState<number | null>(null)
 
@@ -80,6 +82,12 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
     },
     [onUnauthorized],
   )
+
+  useEffect(() => {
+    const onHashChange = () => setRoute(window.location.hash)
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -314,6 +322,25 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
     reloadCharacters()
   }
 
+  const openWiki = () => {
+    window.location.hash = '#/wiki'
+  }
+
+  // The wiki is a page, not a panel, so it gets a URL worth bookmarking and a
+  // working back button. The hash is enough for one route — a router would be a
+  // dependency for a single boolean.
+  if (route === '#/wiki') {
+    return (
+      <WikiPage
+        campaignId={campaign?.id ?? null}
+        onClose={() => {
+          window.location.hash = ''
+        }}
+        onError={report}
+      />
+    )
+  }
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[#0c0d12] text-[#e7e8ea]">
       {isDM ? (
@@ -345,6 +372,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           onDeleteToken={(id) => void api.deleteToken(id).catch(report)}
           ownerName={ownerName}
           activeTokenId={activeTokenId}
+          onOpenWiki={openWiki}
           onRoll={roll}
           onAttack={attack}
           onError={sheetError}
@@ -359,6 +387,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           onSelectCharacter={setCharacterId}
           onCreateCharacter={addCharacter}
           targetTokenId={targetTokenId}
+          onOpenWiki={openWiki}
           onRoll={roll}
           onAttack={attack}
           onError={sheetError}

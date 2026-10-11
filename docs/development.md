@@ -113,7 +113,7 @@ frontend/
     api/           Fetch client and shared types
     components/    DMSidebar, PlayerSidebar, MapCanvas, ChatPanel,
                    CharacterSheetPanel, InitiativePanel, BestiaryPanel,
-                   WikiPanel (+ wiki-rules.ts, the only hand-written rules
+                   WikiPage (+ wiki-rules.ts, the only hand-written rules
                    text), AuthForm, InvitePanel, AccountBar
     hooks/         useAuth (session), useSession (tokens, chat, rolls)
 docs/
@@ -126,7 +126,7 @@ Three columns, two arrangements, chosen by role in `App.tsx`:
 
 | Column | Player            | DM                                           |
 | ------ | ----------------- | -------------------------------------------- |
-| Left   | Tabs: sheet, shop, lore, wiki | Tabs: board, party, bestiary, shop, tools, lore, wiki, saves, setup |
+| Left   | Tabs: sheet, shop, lore | Tabs: board, party, bestiary, shop, tools, lore, saves, setup |
 | Centre | The board         | The board                                    |
 | Right  | Initiative + chat | Initiative + chat                            |
 
@@ -139,6 +139,11 @@ tabs rather than a drawer.
 Nothing lives in the right column except initiative and chat. That is
 deliberate: with three panels sharing it, chat collapsed to a sliver exactly
 when a fight filled the initiative list.
+
+The wiki is the one exception to the three columns: `#/wiki` replaces the whole
+screen. Reference reading wants the width, and the board is not being looked at
+while someone is working out what "prone" does. It is the only route in the app,
+so it is a `hashchange` listener in `App.tsx` rather than a router dependency.
 
 Role gating in the UI is a convenience. Every rule is enforced again in the
 service layer — see [auth.md](auth.md).

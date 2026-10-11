@@ -13,6 +13,29 @@ export type GlossaryEntry = {
   body: string
 }
 
+/**
+ * The fifteen conditions the rules themselves define. The `status_effects`
+ * table starts empty and only holds what a DM adds for their own campaign, so
+ * without these the conditions page would be blank on a fresh database.
+ */
+export const CORE_CONDITIONS: { name: string; body: string }[] = [
+  { name: 'Blinded', body: 'You cannot see, and automatically fail any check that needs sight. Attacks against you have advantage, and your own attacks have disadvantage.' },
+  { name: 'Charmed', body: 'You cannot attack whoever charmed you. They have advantage on social checks against you.' },
+  { name: 'Deafened', body: 'You cannot hear, and automatically fail any check that needs hearing.' },
+  { name: 'Exhaustion', body: 'Stacks in six levels, each worse than the last: disadvantage on checks, then half speed, then disadvantage on attacks and saves, then half hit points, then speed 0, then death.' },
+  { name: 'Frightened', body: 'Disadvantage on checks and attacks while the thing scaring you is in sight, and you cannot willingly move closer to it.' },
+  { name: 'Grappled', body: 'Your speed is 0. It ends if the grappler is incapacitated or you are moved out of reach.' },
+  { name: 'Incapacitated', body: 'You can take no actions and no reactions.' },
+  { name: 'Invisible', body: 'You cannot be seen without special senses. Your attacks have advantage, attacks against you have disadvantage.' },
+  { name: 'Paralyzed', body: 'Incapacitated, cannot move or speak, and you fail Strength and Dexterity saves automatically. Attacks against you have advantage, and any hit from within 5 feet is a critical.' },
+  { name: 'Petrified', body: 'Turned to stone. Incapacitated, unaware of your surroundings, resistant to all damage, and immune to poison and disease.' },
+  { name: 'Poisoned', body: 'Disadvantage on attack rolls and ability checks.' },
+  { name: 'Prone', body: 'You can only crawl, and it costs extra movement to stand. Disadvantage on your attacks. Attacks against you from within 5 feet have advantage, from further away disadvantage.' },
+  { name: 'Restrained', body: 'Speed 0, disadvantage on your attacks and on Dexterity saves. Attacks against you have advantage.' },
+  { name: 'Stunned', body: 'Incapacitated, cannot move, and can barely speak. You fail Strength and Dexterity saves automatically, and attacks against you have advantage.' },
+  { name: 'Unconscious', body: 'Incapacitated, unaware, you drop what you hold and fall prone. You fail Strength and Dexterity saves automatically, attacks against you have advantage, and any hit from within 5 feet is a critical.' },
+]
+
 export const HOW_TO_PLAY: { heading: string; paragraphs: string[] }[] = [
   {
     heading: 'What this is',
