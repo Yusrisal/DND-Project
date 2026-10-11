@@ -2,6 +2,9 @@
 /backend/bin/
 *.exe
 
+# Uploaded images (dev)
+/backend/uploads/
+
 # Node
 node_modules/
 /frontend/dist/

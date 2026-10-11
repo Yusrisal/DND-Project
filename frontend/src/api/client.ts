@@ -80,8 +80,23 @@ function query(params: Record<string, string | number | undefined>): string {
 
 const json = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
 
+// Multipart sets its own boundary, so this cannot go through request(), which
+// forces a JSON content type whenever there is a body.
+async function upload(file: File): Promise<{ url: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const response = await fetch('/api/uploads', { method: 'POST', body: form, credentials: 'include' })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new ApiError(body?.error ?? response.statusText, response.status, body?.code, body?.field)
+  }
+  return response.json()
+}
+
 export const api = {
   me: () => request<User>('/auth/me'),
+
+  uploadImage: upload,
 
   login: (input: { email: string; password: string }) => request<User>('/auth/login', json(input)),
 

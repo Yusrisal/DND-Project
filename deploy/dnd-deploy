@@ -189,7 +189,7 @@ cmd_setup() {
 		set -eu
 		$SUDO id -u '$SERVICE_USER' >/dev/null 2>&1 || \
 			$SUDO useradd --system --home '$REMOTE_DIR' --shell /usr/sbin/nologin '$SERVICE_USER'
-		$SUDO install -d -o '$SERVICE_USER' -g '$SERVICE_USER' '$REMOTE_DIR' '$REMOTE_DIR/releases'
+		$SUDO install -d -o '$SERVICE_USER' -g '$SERVICE_USER' '$REMOTE_DIR' '$REMOTE_DIR/releases' '$REMOTE_DIR/uploads'
 		echo 'directories ready'
 	"
 

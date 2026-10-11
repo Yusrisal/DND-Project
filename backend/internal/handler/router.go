@@ -62,6 +62,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	shops := NewShopHandler(shopService)
 	compendium := NewCompendiumHandler(compendiumService)
 	handouts := NewHandoutHandler(handoutService)
+	files := NewUploadHandler(cfg.UploadDir)
 	savepoints := NewSavepointHandler(savepointService)
 	sockets := NewWSHandler(
 		tokenService, mapService, campaignService, chatService, rollService, characterService, combatService,
@@ -106,6 +107,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	mux.HandleFunc("GET /api/status-effects", g.user(compendium.ListStatusEffects))
 	mux.HandleFunc("GET /api/status-effects/{id}", g.user(compendium.GetStatusEffect))
 	mux.HandleFunc("GET /api/monsters/{id}/drops", g.user(compendium.ListMonsterDrops))
+	mux.HandleFunc("GET /uploads/", g.user(uploads(cfg.UploadDir).ServeHTTP))
 	mux.HandleFunc("GET /ws", sockets.Serve)
 
 	// Character sheets
@@ -139,6 +141,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	mux.HandleFunc("POST /api/campaigns/{id}/savepoints", g.dm(savepoints.Create))
 	mux.HandleFunc("POST /api/savepoints/{id}/restore", g.dm(savepoints.Restore))
 	mux.HandleFunc("DELETE /api/savepoints/{id}", g.dm(savepoints.Delete))
+	mux.HandleFunc("POST /api/uploads", g.dm(files.Create))
 	mux.HandleFunc("POST /api/maps", g.dm(maps.Create))
 	mux.HandleFunc("PUT /api/maps/{id}", g.dm(maps.Update))
 	mux.HandleFunc("PUT /api/maps/{id}/fog", g.dm(maps.UpdateFog))

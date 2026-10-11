@@ -212,6 +212,29 @@ curl -s localhost:8080/api/maps -H "Content-Type: application/json" -d "{\"campa
 omitted or non-positive. `campaign_id` is ignored on `PUT` — a map does not move
 between campaigns.
 
+## Uploads
+
+| Method | Path            | Success |
+| ------ | --------------- | ------- |
+| POST   | `/api/uploads`  | 201     |
+| GET    | `/uploads/{name}` | 200   |
+
+Posting is DM only; reading is open to any signed-in account. Note that the
+files are served from `/uploads/`, outside the `/api` prefix.
+
+The request is `multipart/form-data` with one `file` field, at most 8 MB. The
+kind is sniffed from the first bytes and must be PNG, JPEG, GIF or WebP — the
+filename and the `Content-Type` header are both ignored, so renaming a script
+to `.png` is rejected with a 422 and nothing is written.
+
+```json
+{ "url": "/uploads/3f2a…4c.png" }
+```
+
+Store that `url` in an `image_url` field. Files are written to `UPLOAD_DIR`,
+which in production must sit outside the release directory or the next deploy
+deletes them. See [deployment.md](deployment.md).
+
 ## Tokens
 
 | Method | Path               | Success | Broadcasts      |

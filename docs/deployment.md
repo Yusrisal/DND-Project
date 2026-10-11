@@ -22,6 +22,7 @@ Releases sit side by side and are switched with a symlink:
 ```
 /opt/dnd/
   .env                                configuration, never touched by a deploy
+  uploads/                            uploaded images, never touched by a deploy
   current -> releases/20261011-143000
   releases/20261011-143000/
     bin/dnd-api                       the service
@@ -32,6 +33,10 @@ Releases sit side by side and are switched with a symlink:
 The symlink is what makes a rollback a swap and a restart rather than a rebuild.
 `WEB_DIR` and the unit both point through `current`, so neither changes when a
 release does.
+
+`uploads/` deliberately sits beside the releases rather than inside one. A
+release directory is pruned once it falls out of the newest few, so an
+`UPLOAD_DIR` under `current/` would quietly take every uploaded map with it.
 
 Migrations are embedded in both binaries, so `backend/migrations/` is never
 copied anywhere.
@@ -158,6 +163,7 @@ DB_PASSWORD=<password>
 DB_NAME=dnd
 CORS_ORIGINS=https://dnd.example.online
 WEB_DIR=/opt/dnd/current/dist
+UPLOAD_DIR=/opt/dnd/uploads
 ```
 
 Three that bite:
@@ -171,6 +177,10 @@ Three that bite:
   `development` temporarily if you want to test before the tunnel is up.
 - **`WEB_DIR` points at `current`, not at a release.** Point it at a release
   directory and the app keeps serving that one forever.
+- **`UPLOAD_DIR` points outside `current`.** Anything under a release directory
+  is deleted when that release is pruned. Leaving it unset is also safe: it
+  defaults to `uploads` relative to the unit's `WorkingDirectory=/opt/dnd`,
+  which is the same place.
 
 Then run setup again:
 
@@ -292,6 +302,8 @@ problem cannot masquerade as a bad release.
 | Unit will not start | `./deploy/dnd-deploy logs 50`; usually bad credentials or an unreadable `.env` |
 | `/api/health` returns `degraded` | The database is down or the credentials are wrong |
 | Blank page, API responds | `WEB_DIR` unset or not pointing at `/opt/dnd/current/dist` |
+| Upload answers 500 | `UPLOAD_DIR` is not writable by `dnd`, or sits outside the unit's `ReadWritePaths=/opt/dnd` |
+| Maps lose their images after a deploy | `UPLOAD_DIR` was inside a release directory and got pruned |
 | App loads, status dot stays red | `CORS_ORIGINS` does not match the hostname, so the websocket upgrade is refused |
 | Signed in, then immediately signed out | `APP_ENV=production` while serving plain HTTP, so the browser drops the `Secure` cookie |
 | 502 at the hostname, `status` says healthy | The tunnel points at the wrong port. `status` checks localhost by design |

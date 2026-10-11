@@ -10,6 +10,7 @@ type Config struct {
 	HTTPAddr    string
 	DBDSN       string
 	WebDir      string
+	UploadDir   string
 	CORSOrigins []string
 }
 
@@ -19,6 +20,7 @@ func Load() Config {
 		HTTPAddr:    env("HTTP_ADDR", ":8080"),
 		DBDSN:       loadDSN(),
 		WebDir:      os.Getenv("WEB_DIR"),
+		UploadDir:   env("UPLOAD_DIR", "uploads"),
 		CORSOrigins: strings.Split(env("CORS_ORIGINS", "http://localhost:5173"), ","),
 	}
 }

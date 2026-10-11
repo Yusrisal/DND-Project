@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { api } from '../api/client'
 import type { GameMap } from '../api/types'
 
 export type MapFormValues = {
@@ -49,11 +50,30 @@ export function MapFormModal({ isOpen, map, onClose, onSubmit }: Props) {
   )
   // A broken URL should say so rather than silently render an empty board.
   const [imageBroken, setImageBroken] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const fileInput = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
 
   const set = <K extends keyof MapFormValues>(key: K, value: MapFormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }))
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true)
+    setUploadError('')
+    try {
+      const { url } = await api.uploadImage(file)
+      setImageBroken(false)
+      set('image_url', url)
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (fileInput.current) fileInput.current.value = ''
+    }
+  }
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -108,16 +128,36 @@ export function MapFormModal({ isOpen, map, onClose, onSubmit }: Props) {
           </div>
 
           <div>
-            <label className={labelStyle}>Background Image URL</label>
+            <label className={labelStyle}>Background Image</label>
+            <div className="flex gap-2">
+              <input
+                value={values.image_url}
+                onChange={(event) => {
+                  setImageBroken(false)
+                  set('image_url', event.target.value)
+                }}
+                placeholder="https://… or upload a file"
+                className={field}
+              />
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploading}
+                className="shrink-0 px-3 bg-[#1e2333] border-2 border-[#32394d] text-slate-300 hover:border-[#66fcf1] hover:text-white text-[10px] font-bold uppercase disabled:opacity-50"
+              >
+                {uploading ? 'Uploading…' : 'Upload'}
+              </button>
+            </div>
             <input
-              value={values.image_url}
-              onChange={(event) => {
-                setImageBroken(false)
-                set('image_url', event.target.value)
-              }}
-              placeholder="https://… (leave blank for a plain grid)"
-              className={field}
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              hidden
+              onChange={(event) => void handleFile(event.target.files?.[0])}
             />
+            {uploadError && (
+              <p className="text-[10px] text-[#ff6b81] mt-1 mb-0">{uploadError}</p>
+            )}
           </div>
 
           {/* The preview is the point: the DM sees the board before saving. */}
