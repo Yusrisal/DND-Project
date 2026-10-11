@@ -276,7 +276,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   )
 
   // The creature whose turn it is, used to name the attacker on a monster action.
-  const activeTokenId = encounter?.combatants[encounter.turn_index]?.token_id ?? null
+  const activeTokenId = encounter?.combatants?.[encounter.turn_index]?.token_id ?? null
 
   const sheetError = (err: unknown) => {
     report(err)

@@ -150,7 +150,7 @@ export function DMSidebar(props: Props) {
                 </button>
               </header>
               <ul className="space-y-1.5">
-                {props.tokens.map((token) => (
+                {(props.tokens || []).map((token) => (
                   <li
                     key={token.id}
                     className={`flex items-center gap-2 p-2 rounded text-xs border transition-colors ${
@@ -171,7 +171,7 @@ export function DMSidebar(props: Props) {
                       <div className="text-[10px] text-slate-400 truncate">
                         {token.hp_max > 0 &&
                           `${token.hp_current}/${token.hp_max} hp · AC ${token.armor_class}`}
-                        {token.conditions.length > 0 && ` · ${token.conditions.join(', ')}`}
+                        {(token.conditions || []).length > 0 && ` · ${(token.conditions || []).join(', ')}`}
                         {props.ownerName(token) && ` · ${props.ownerName(token)}`}
                       </div>
                     </button>
@@ -190,7 +190,7 @@ export function DMSidebar(props: Props) {
                   </li>
                 ))}
               </ul>
-              {props.tokens.length === 0 && (
+              {(!props.tokens || props.tokens.length === 0) && (
                 <p className="text-xs text-slate-500 italic">Nothing on this map yet.</p>
               )}
             </section>

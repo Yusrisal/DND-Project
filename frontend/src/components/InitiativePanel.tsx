@@ -36,9 +36,12 @@ export function InitiativePanel({
     )
   }
 
+  const combatants = Array.isArray(encounter.combatants) ? encounter.combatants : []
+  const safeTokens = Array.isArray(tokens) ? tokens : []
+
   // Tokens already in the order are not offered again.
-  const listed = new Set(encounter.combatants.map((c) => c.token_id).filter(Boolean))
-  const available = tokens.filter((token) => !listed.has(token.id))
+  const listed = new Set(combatants.map((c) => c.token_id).filter(Boolean))
+  const available = safeTokens.filter((token) => !listed.has(token.id))
 
   const addEveryone = async () => {
     try {
@@ -67,8 +70,8 @@ export function InitiativePanel({
       </header>
 
       <ol className="order">
-        {encounter.combatants.map((combatant, index) => {
-          const token = tokens.find((t) => t.id === combatant.token_id)
+        {combatants.map((combatant, index) => {
+          const token = safeTokens.find((t) => t.id === combatant.token_id)
           const classes = ['order-row']
           if (index === encounter.turn_index) classes.push('current')
           if (token && token.id === selectedTokenId) classes.push('targeted')
@@ -101,7 +104,7 @@ export function InitiativePanel({
         })}
       </ol>
 
-      {encounter.combatants.length === 0 && <p className="hint">Nobody has rolled yet.</p>}
+      {combatants.length === 0 && <p className="hint">Nobody has rolled yet.</p>}
 
       {isDM && available.length > 0 && (
         <div className="quick-rolls">

@@ -114,7 +114,7 @@ func (r *ShopRepository) Items(ctx context.Context, shopID int64) ([]model.ShopI
 	}
 	defer rows.Close()
 
-	var items []model.ShopItem
+	items := []model.ShopItem{}
 	for rows.Next() {
 		i, err := scanShopItem(rows)
 		if err != nil {

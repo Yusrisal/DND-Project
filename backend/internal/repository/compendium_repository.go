@@ -207,7 +207,7 @@ func (r *CompendiumRepository) ListMonsterDrops(ctx context.Context, monsterID i
 	}
 	defer rows.Close()
 
-	var drops []model.MonsterDrop
+	drops := []model.MonsterDrop{}
 	for rows.Next() {
 		d, err := scanMonsterDrop(rows)
 		if err != nil {

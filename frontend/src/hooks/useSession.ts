@@ -56,7 +56,7 @@ export function useSession(mapId: number | null) {
         const { type, payload } = JSON.parse(event.data) as Envelope
         switch (type) {
           case 'board':
-            setTokens(payload as Token[])
+            setTokens(Array.isArray(payload) ? (payload as Token[]) : [])
             break
           case 'token.created': {
             const token = payload as Token
@@ -76,13 +76,13 @@ export function useSession(mapId: number | null) {
             break
           }
           case 'chat.history':
-            setMessages(payload as ChatMessage[])
+            setMessages(Array.isArray(payload) ? (payload as ChatMessage[]) : [])
             break
           case 'chat.message':
             setMessages((current) => upsert(current, payload as ChatMessage))
             break
           case 'roll.history':
-            setRolls(payload as DiceRoll[])
+            setRolls(Array.isArray(payload) ? (payload as DiceRoll[]) : [])
             break
           case 'roll': {
             playDiceSound()
@@ -103,8 +103,8 @@ export function useSession(mapId: number | null) {
             break
           }
           case 'encounter': {
-            const next = payload as Encounter
-            setEncounter(next.active ? next : null)
+            const next = payload as Encounter | null
+            setEncounter(next && next.active ? next : null)
             break
           }
           case 'map.ping': {
@@ -125,7 +125,7 @@ export function useSession(mapId: number | null) {
             setRejected(message)
             api
               .board(mapId)
-              .then(setTokens)
+              .then((data) => setTokens(Array.isArray(data) ? data : []))
               .catch(() => undefined)
             break
           }
@@ -203,9 +203,11 @@ export function useSession(mapId: number | null) {
 
   // Chat and rolls share one feed, ordered by when the server recorded them.
   const feed = useMemo<FeedEntry[]>(() => {
+    const validMessages = Array.isArray(messages) ? messages : []
+    const validRolls = Array.isArray(rolls) ? rolls : []
     const entries: FeedEntry[] = [
-      ...messages.map((message) => ({ kind: 'message' as const, at: message.created_at, message })),
-      ...rolls.map((entry) => ({ kind: 'roll' as const, at: entry.created_at, roll: entry })),
+      ...validMessages.map((message) => ({ kind: 'message' as const, at: message.created_at, message })),
+      ...validRolls.map((entry) => ({ kind: 'roll' as const, at: entry.created_at, roll: entry })),
     ]
     return entries.sort((a, b) => a.at.localeCompare(b.at))
   }, [messages, rolls])

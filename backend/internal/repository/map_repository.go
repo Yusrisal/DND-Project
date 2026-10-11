@@ -142,7 +142,7 @@ func (r *MapRepository) ListAoETemplates(ctx context.Context, mapID int64) ([]mo
 	}
 	defer rows.Close()
 
-	var list []model.AoETemplate
+	list := []model.AoETemplate{}
 	for rows.Next() {
 		var t model.AoETemplate
 		if err := rows.Scan(&t.ID, &t.MapID, &t.Name, &t.Shape, &t.SizeFt, &t.Color, &t.X, &t.Y, &t.CreatedAt); err != nil {
@@ -199,7 +199,7 @@ func (r *MapRepository) ListObjects(ctx context.Context, mapID int64) ([]model.M
 	}
 	defer rows.Close()
 
-	var list []model.MapObject
+	list := []model.MapObject{}
 	for rows.Next() {
 		o, err := scanMapObject(rows)
 		if err != nil {

@@ -103,7 +103,10 @@ export function MapCanvas({
 
   // Load AoE templates
   const refreshAoE = useCallback(() => {
-    api.listAoETemplates(map.id).then(setAoeTemplates).catch(() => {})
+    api
+      .listAoETemplates(map.id)
+      .then((res) => setAoeTemplates(Array.isArray(res) ? res : []))
+      .catch(() => setAoeTemplates([]))
   }, [map.id])
 
   useEffect(() => {
@@ -113,11 +116,14 @@ export function MapCanvas({
   // Grid background lines
   const gridLines = useMemo(() => {
     const lines: number[][] = []
-    for (let x = map.grid_size; x < map.width; x += map.grid_size) {
-      lines.push([x, 0, x, map.height])
+    const gridSize = map.grid_size || 50
+    const width = map.width || 1920
+    const height = map.height || 1080
+    for (let x = gridSize; x < width; x += gridSize) {
+      lines.push([x, 0, x, height])
     }
-    for (let y = map.grid_size; y < map.height; y += map.grid_size) {
-      lines.push([0, y, map.width, y])
+    for (let y = gridSize; y < height; y += gridSize) {
+      lines.push([0, y, width, y])
     }
     return lines
   }, [map.grid_size, map.width, map.height])
@@ -125,10 +131,11 @@ export function MapCanvas({
   // Distance calculation in feet
   const rulerDistance = useMemo(() => {
     if (!rulerStart || !rulerEnd) return null
+    const gridSize = map.grid_size || 50
     const dx = rulerEnd.x - rulerStart.x
     const dy = rulerEnd.y - rulerStart.y
     const pixelDist = Math.hypot(dx, dy)
-    const squares = Math.max(1, Math.round(pixelDist / map.grid_size))
+    const squares = Math.max(1, Math.round(pixelDist / gridSize))
     const feet = squares * 5
     return { feet, squares, midX: (rulerStart.x + rulerEnd.x) / 2, midY: (rulerStart.y + rulerEnd.y) / 2 }
   }, [rulerStart, rulerEnd, map.grid_size])
@@ -392,7 +399,7 @@ export function MapCanvas({
 
         {/* Layer 2: AoE Spell Templates */}
         <Layer>
-          {aoeTemplates.map((t) => {
+          {(aoeTemplates || []).map((t) => {
             const pixelRadius = (t.size_ft / 5) * map.grid_size
             return (
               <Group
@@ -465,8 +472,8 @@ export function MapCanvas({
 
         {/* Layer 3: Tokens */}
         <Layer>
-          {tokens.map((token) => {
-            const radius = (token.size * map.grid_size) / 2
+          {(tokens || []).map((token) => {
+            const radius = (token.size * (map.grid_size || 50)) / 2
             const movable = canMove(token)
             const targeted = token.id === selectedTokenId
             const dead = token.hp_max > 0 && token.hp_current === 0
@@ -535,9 +542,9 @@ export function MapCanvas({
                   </Group>
                 )}
 
-                {token.conditions.length > 0 && (
+                {(token.conditions || []).length > 0 && (
                   <Text
-                    text={token.conditions.map((c) => c.slice(0, 4)).join(' ')}
+                    text={(token.conditions || []).map((c) => c.slice(0, 4)).join(' ')}
                     fontSize={9}
                     fill="#e9b949"
                     width={radius * 4}
@@ -575,7 +582,7 @@ export function MapCanvas({
             />
 
             {/* Revealed cutouts */}
-            {revealedBoxes.map((box, index) => (
+            {(revealedBoxes || []).map((box, index) => (
               <Group key={index}>
                 <Rect
                   x={box.x}
@@ -655,7 +662,7 @@ export function MapCanvas({
           )}
 
           {/* Floating Combat Numbers */}
-          {floatingTexts.map((ft) => (
+          {(floatingTexts || []).map((ft) => (
             <Text
               key={ft.id}
               x={ft.x - 30}

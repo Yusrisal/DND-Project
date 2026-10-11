@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coder/websocket"
@@ -49,9 +50,15 @@ func NewWSHandler(
 	hub *ws.Hub,
 	origins []string,
 ) *WSHandler {
+	cleanOrigins := make([]string, 0, len(origins))
+	for _, o := range origins {
+		if trimmed := strings.TrimSpace(o); trimmed != "" {
+			cleanOrigins = append(cleanOrigins, trimmed)
+		}
+	}
 	return &WSHandler{
 		tokens: tokens, maps: maps, campaigns: campaigns, chat: chat, rolls: rolls,
-		characters: characters, combat: combat, auth: auth, hub: hub, origins: origins,
+		characters: characters, combat: combat, auth: auth, hub: hub, origins: cleanOrigins,
 	}
 }
 
