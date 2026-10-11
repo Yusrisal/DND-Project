@@ -133,8 +133,16 @@ put_file() {
 
 need() { command -v "$1" >/dev/null 2>&1 || die "$1 is not installed"; }
 
-# as_service runs a command on the remote as the service account.
-as_service() { printf '%s -u %s %s' "$SUDO" "$SERVICE_USER" "$1"; }
+# as_service builds a command that runs as the unprivileged service account.
+# With sudo that is `sudo -u`; as root there is nothing to elevate to, so it
+# uses runuser instead — `sudo` may not even be installed.
+as_service() {
+	if [ -n "$SUDO" ]; then
+		printf '%s -u %s %s' "$SUDO" "$SERVICE_USER" "$1"
+	else
+		printf 'runuser -u %s -- %s' "$SERVICE_USER" "$1"
+	fi
+}
 
 # --------------------------------------------------------------------- building
 
