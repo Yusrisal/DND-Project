@@ -7,6 +7,7 @@ import { AuthForm } from './components/AuthForm'
 import { ChatPanel } from './components/ChatPanel'
 import { DMSidebar } from './components/DMSidebar'
 import { InitiativePanel } from './components/InitiativePanel'
+import { InputModal } from './components/InputModal'
 import { MapCanvas } from './components/MapCanvas'
 import { PlayerSidebar } from './components/PlayerSidebar'
 import { useAuth } from './hooks/useAuth'
@@ -46,6 +47,19 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   const [error, setError] = useState<string | null>(null)
   // The token an attack lands on. Clicking the board picks it.
   const [targetTokenId, setTargetTokenId] = useState<number | null>(null)
+
+  // Modal dialog state (replaces window.prompt)
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean
+    title: string
+    label?: string
+    placeholder?: string
+    onSubmit: (val: string) => void
+  }>({
+    isOpen: false,
+    title: '',
+    onSubmit: () => {},
+  })
 
   const { tokens, feed, encounter, connected, rejected, moveToken, sendMessage, roll, attack } =
     useSession(map?.id ?? null)
@@ -129,70 +143,88 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
       .catch(report)
   }, [campaign, report])
 
-  const addCampaign = async () => {
-    const name = prompt('Campaign name')
-    if (!name) return
-    try {
-      const created = await api.createCampaign({ name, description: '' })
-      setCampaigns((current) => [...current, created])
-      setCampaign(created)
-    } catch (err) {
-      report(err)
-    }
+  const addCampaign = () => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Create Campaign',
+      label: 'Campaign Name',
+      placeholder: 'e.g. Curse of the Dragon King',
+      onSubmit: async (name) => {
+        try {
+          const created = await api.createCampaign({ name, description: '' })
+          setCampaigns((current) => [...current, created])
+          setCampaign(created)
+        } catch (err) {
+          report(err)
+        }
+      },
+    })
   }
 
-  const addMap = async () => {
+  const addMap = () => {
     if (!campaign) {
       alert('Please select or create a Campaign first in the [SETUP] tab!')
       return
     }
-    const name = prompt('Map name')
-    if (!name) return
-    try {
-      const created = await api.createMap({ campaign_id: campaign.id, name })
-      setMaps((current) => [...current, created])
-      setMap(created)
-    } catch (err) {
-      report(err)
-    }
+    setModalConfig({
+      isOpen: true,
+      title: 'Create Map',
+      label: 'Map Name',
+      placeholder: 'e.g. Tavern Dungeon Level 1',
+      onSubmit: async (name) => {
+        try {
+          const created = await api.createMap({ campaign_id: campaign.id, name })
+          setMaps((current) => [...current, created])
+          setMap(created)
+        } catch (err) {
+          report(err)
+        }
+      },
+    })
   }
 
-  const addToken = async () => {
+  const addToken = () => {
     if (!map) {
       alert('Please create or select a Map first before adding tokens!')
       return
     }
-    const name = prompt('Token name')
-    if (!name) return
-
-    const roster = players.map((player, index) => `${index + 1}. ${player.display_name}`).join('\n')
-    const choice = prompt(`Assign to which player? Empty for none.\n${roster}`)
-    const owner = choice ? (players[Number(choice) - 1] ?? null) : null
-
-    try {
-      // The socket echo puts it on the board, so there is nothing to set here.
-      await api.createToken({
-        map_id: map.id,
-        name,
-        color: TOKEN_COLORS[tokens.length % TOKEN_COLORS.length],
-        owner_user_id: owner?.id ?? null,
-      })
-    } catch (err) {
-      report(err)
-    }
+    setModalConfig({
+      isOpen: true,
+      title: 'Create Token',
+      label: 'Token Name',
+      placeholder: 'e.g. Goblin Archer #1',
+      onSubmit: async (name) => {
+        try {
+          await api.createToken({
+            map_id: map.id,
+            name,
+            color: TOKEN_COLORS[tokens.length % TOKEN_COLORS.length],
+            owner_user_id: null,
+          })
+        } catch (err) {
+          report(err)
+        }
+      },
+    })
   }
 
-  const addCharacter = async () => {
+  const addCharacter = () => {
     if (!campaign) return
-    const name = prompt('Character name')
-    if (!name) return
-    try {
-      const created = await api.createCharacter({ campaign_id: campaign.id, name })
-      setCharacters((current) => [...current, created])
-      setCharacterId(created.id)
-    } catch (err) {
-      report(err)
-    }
+    setModalConfig({
+      isOpen: true,
+      title: 'Create Character Sheet',
+      label: 'Character Name',
+      placeholder: 'e.g. Thorin Oakenshield',
+      onSubmit: async (name) => {
+        try {
+          const created = await api.createCharacter({ campaign_id: campaign.id, name })
+          setCharacters((current) => [...current, created])
+          setCharacterId(created.id)
+        } catch (err) {
+          report(err)
+        }
+      },
+    })
   }
 
   const toggleCondition = async (token: Token) => {
@@ -415,6 +447,16 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           }}
         />
       </div>
+
+      {/* Modern In-Game Input Modal */}
+      <InputModal
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        label={modalConfig.label}
+        placeholder={modalConfig.placeholder}
+        onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        onSubmit={modalConfig.onSubmit}
+      />
     </div>
   )
 }
