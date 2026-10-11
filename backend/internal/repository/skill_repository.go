@@ -42,7 +42,7 @@ func (r *SkillRepository) ListClassSkills(ctx context.Context, className string)
 	}
 	defer rows.Close()
 
-	var list []model.ClassSkill
+	list := []model.ClassSkill{}
 	for rows.Next() {
 		s, err := scanClassSkill(rows)
 		if err != nil {
@@ -74,7 +74,7 @@ func (r *SkillRepository) CharacterSkills(ctx context.Context, characterID int64
 	}
 	defer rows.Close()
 
-	var list []model.CharacterLearnedSkill
+	list := []model.CharacterLearnedSkill{}
 	for rows.Next() {
 		var item model.CharacterLearnedSkill
 		var s model.ClassSkill
@@ -164,7 +164,7 @@ func (r *SkillRepository) ListPendingLoot(ctx context.Context, campaignID int64)
 	}
 	defer rows.Close()
 
-	var list []model.PendingLootDrop
+	list := []model.PendingLootDrop{}
 	for rows.Next() {
 		l, err := scanPendingLoot(rows)
 		if err != nil {

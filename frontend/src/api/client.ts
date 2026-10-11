@@ -95,6 +95,8 @@ async function upload(file: File): Promise<{ url: string }> {
   return response.json()
 }
 
+const skillTreeCache = new Map<string, Promise<ClassSkill[]>>()
+
 export const api = {
   me: () => request<User>('/auth/me'),
 
@@ -230,8 +232,22 @@ export const api = {
   allocateStat: (characterId: number, ability: string) =>
     request<CharacterSheet>(`/characters/${characterId}/allocate-stat`, json({ ability })),
 
-  listSkillTrees: (className?: string) =>
-    request<ClassSkill[]>(`/skill-trees${query({ class_name: className })}`),
+  // Skill trees never change at runtime (they are seeded in a migration), so one
+  // fetch per class per page load is enough. Without this the 250-row payload is
+  // re-fetched every time the tree tab mounts.
+  listSkillTrees: (className?: string) => {
+    const key = className ?? ''
+    const cached = skillTreeCache.get(key)
+    if (cached) return cached
+    const pending = request<ClassSkill[]>(`/skill-trees${query({ class_name: className })}`)
+      .then((skills) => skills ?? [])
+      .catch((err) => {
+        skillTreeCache.delete(key)
+        throw err
+      })
+    skillTreeCache.set(key, pending)
+    return pending
+  },
 
   learnSkill: (characterId: number, skillId: number) =>
     request<CharacterSheet>(`/characters/${characterId}/learn-skill`, json({ skill_id: skillId })),

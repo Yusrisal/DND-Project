@@ -9,7 +9,8 @@ type Props = {
 }
 
 export function SkillTreeTab({ sheet, onRefresh, onError }: Props) {
-  const { character, skills_loaded = [] } = sheet
+  const skills_loaded = sheet.skills_loaded ?? []
+  const { character } = sheet
   const [treeSkills, setTreeSkills] = useState<ClassSkill[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -17,7 +18,7 @@ export function SkillTreeTab({ sheet, onRefresh, onError }: Props) {
     setLoading(true)
     api
       .listSkillTrees(character.class)
-      .then((skills) => setTreeSkills(skills))
+      .then((skills) => setTreeSkills(skills ?? []))
       .catch(onError)
       .finally(() => setLoading(false))
   }, [character.class, onError])
@@ -73,14 +74,14 @@ export function SkillTreeTab({ sheet, onRefresh, onError }: Props) {
       )}
 
       {/* Tiers Display */}
-      {[1, 2, 3, 4].map((tier) => {
+      {[1, 2, 3, 4, 5].map((tier) => {
         const tierSkills = treeSkills.filter((s) => s.tier === tier)
         if (tierSkills.length === 0) return null
 
         return (
           <div key={tier} className="space-y-1.5">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-[#232733] pb-1 flex justify-between">
-              <span>{tier === 4 ? 'Tier IV (Ultimate)' : `Tier ${tier}`}</span>
+              <span>{tier === 5 ? 'Tier V (Grandmaster)' : `Tier ${tier}`}</span>
               <span className="text-[9px] text-slate-500">Req Lv {tierSkills[0].req_level}+</span>
             </div>
 

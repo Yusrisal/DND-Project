@@ -57,9 +57,11 @@ func (s *CharacterService) Sheet(ctx context.Context, user model.User, id int64)
 	if err != nil {
 		return model.CharacterSheet{}, err
 	}
-	var skillsLoaded []model.CharacterLearnedSkill
+	skillsLoaded := []model.CharacterLearnedSkill{}
 	if s.skills != nil {
-		skillsLoaded, _ = s.skills.CharacterSkills(ctx, id)
+		if loaded, err := s.skills.CharacterSkills(ctx, id); err == nil && loaded != nil {
+			skillsLoaded = loaded
+		}
 	}
 	slots, err := s.repo.Slots(ctx, id)
 	if err != nil {

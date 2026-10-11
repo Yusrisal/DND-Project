@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"strings"
 	"time"
 )
@@ -248,6 +249,36 @@ type CharacterSheet struct {
 	// proficiency rule and then disagree with the server about it.
 	Skills []CheckModifier `json:"skills"`
 	Saves  []CheckModifier `json:"saves"`
+}
+
+// MarshalJSON keeps every list on the sheet an empty array rather than null.
+// A nil slice would otherwise reach the browser as null and crash the first
+// caller that reads .length off it.
+func (s CharacterSheet) MarshalJSON() ([]byte, error) {
+	type sheet CharacterSheet // alias drops this method, so no recursion
+	out := sheet(s)
+	if out.Items == nil {
+		out.Items = []CharacterItem{}
+	}
+	if out.Spells == nil {
+		out.Spells = []CharacterSpell{}
+	}
+	if out.SkillsLoaded == nil {
+		out.SkillsLoaded = []CharacterLearnedSkill{}
+	}
+	if out.Slots == nil {
+		out.Slots = []SpellSlot{}
+	}
+	if out.Proficiencies == nil {
+		out.Proficiencies = []Proficiency{}
+	}
+	if out.Skills == nil {
+		out.Skills = []CheckModifier{}
+	}
+	if out.Saves == nil {
+		out.Saves = []CheckModifier{}
+	}
+	return json.Marshal(out)
 }
 
 // TotalCP converts coins to copper piece value (10 CP = 1 SP, 50 CP = 1 EP, 100 CP = 1 GP, 1000 CP = 1 PP).
