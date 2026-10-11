@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Abilities are the six 5e scores. They are a separate struct so the modifier
 // rule lives in one place instead of six.
@@ -146,6 +149,31 @@ type CharacterItem struct {
 // IsWeapon is the only thing that marks an inventory row as attackable: it has
 // a damage expression.
 func (i CharacterItem) IsWeapon() bool { return i.Damage != "" }
+
+// Consumable detection helpers
+func (i CharacterItem) IsPotion() bool {
+	lower := strings.ToLower(i.Name)
+	return strings.Contains(lower, "potion") || strings.Contains(lower, "elixir") || strings.Contains(lower, "brew") || strings.Contains(lower, "flask")
+}
+
+func (i CharacterItem) IsPortalScroll() bool {
+	lower := strings.ToLower(i.Name)
+	return strings.Contains(lower, "portal") || strings.Contains(lower, "teleport") || strings.Contains(lower, "escape scroll")
+}
+
+func (i CharacterItem) IsCombatScroll() bool {
+	lower := strings.ToLower(i.Name)
+	return strings.Contains(lower, "scroll") && i.TeachesSkillID == nil && i.Damage != ""
+}
+
+type ConsumeItemResult struct {
+	ItemName    string `json:"item_name"`
+	EffectType  string `json:"effect_type"` // "heal", "portal", "spell"
+	EffectValue string `json:"effect_value"`
+	HealAmount  int    `json:"heal_amount,omitempty"`
+	Damage      string `json:"damage,omitempty"`
+	Message     string `json:"message"`
+}
 
 type CharacterItemInput struct {
 	Name           string  `json:"name"`

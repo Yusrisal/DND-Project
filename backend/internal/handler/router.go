@@ -135,6 +135,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	mux.HandleFunc("POST /api/characters/{id}/learn-skill", g.user(skills.Learn))
 	mux.HandleFunc("POST /api/characters/{id}/toggle-skill", g.user(skills.ToggleActive))
 	mux.HandleFunc("POST /api/characters/{id}/use-scroll", g.user(skills.UseScroll))
+	mux.HandleFunc("POST /api/characters/{id}/use-consumable", g.user(skills.UseConsumable))
 	mux.HandleFunc("PUT /api/spells/{id}", g.user(characters.UpdateSpell))
 	mux.HandleFunc("DELETE /api/spells/{id}", g.user(characters.DeleteSpell))
 

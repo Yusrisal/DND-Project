@@ -65,6 +65,16 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
     }
   }
 
+  const handleUseConsumable = async (item: CharacterItem) => {
+    try {
+      const res = await api.useConsumable(character.id, item.id)
+      alert(res.message)
+      refresh()
+    } catch (err) {
+      onError(err)
+    }
+  }
+
   const handleTransferItem = async (item: CharacterItem) => {
     const toCharInput = prompt('Enter recipient Character ID to transfer item to:')
     if (!toCharInput) return
@@ -590,6 +600,24 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
                     learn
                   </button>
                 )}
+                {(() => {
+                  const lower = item.name.toLowerCase()
+                  const isConsumable =
+                    lower.includes('potion') ||
+                    lower.includes('elixir') ||
+                    lower.includes('portal') ||
+                    lower.includes('teleport') ||
+                    (lower.includes('scroll') && !item.teaches_skill_id)
+                  return isConsumable ? (
+                    <button
+                      className="pill on"
+                      title="Use consumable item (potion, portal, combat scroll)"
+                      onClick={() => handleUseConsumable(item)}
+                    >
+                      use
+                    </button>
+                  ) : null
+                })()}
                 <button
                   className="link"
                   title="Transfer item to another character"

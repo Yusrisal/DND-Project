@@ -242,6 +242,16 @@ export const api = {
   useSkillScroll: (characterId: number, itemId: number) =>
     request<CharacterSheet>(`/characters/${characterId}/use-scroll`, json({ item_id: itemId })),
 
+  useConsumable: (characterId: number, itemId: number) =>
+    request<{
+      item_name: string
+      effect_type: string
+      effect_value: string
+      heal_amount?: number
+      damage?: string
+      message: string
+    }>(`/characters/${characterId}/use-consumable`, json({ item_id: itemId })),
+
   transferItem: (characterId: number, input: { to_character_id: number; item_id: number; quantity?: number }) =>
     request<CharacterSheet>(`/characters/${characterId}/transfer-item`, json(input)),
 

@@ -161,6 +161,114 @@ func (s *SkillService) UseSkillScroll(ctx context.Context, user model.User, char
 	return s.characters.UpdateItem(ctx, itemID, itemInput)
 }
 
+// UseConsumable consumes a potion, portal scroll, or offensive scroll.
+func (s *SkillService) UseConsumable(ctx context.Context, user model.User, charID, itemID int64) (model.ConsumeItemResult, error) {
+	char, err := s.characters.Get(ctx, charID)
+	if err != nil {
+		return model.ConsumeItemResult{}, err
+	}
+	if !user.IsDM() && (char.UserID == nil || *char.UserID != user.ID) {
+		return model.ConsumeItemResult{}, ErrForbidden
+	}
+
+	item, err := s.characters.Item(ctx, itemID)
+	if err != nil {
+		return model.ConsumeItemResult{}, err
+	}
+
+	result := model.ConsumeItemResult{
+		ItemName: item.Name,
+	}
+
+	lower := strings.ToLower(item.Name)
+	switch {
+	case item.IsPotion():
+		// Health potion healing formula
+		healFormula := "2d4+2"
+		switch {
+		case strings.Contains(lower, "supreme"):
+			healFormula = "20d4+40"
+		case strings.Contains(lower, "superior"):
+			healFormula = "10d4+20"
+		case strings.Contains(lower, "greater"):
+			healFormula = "8d4+8"
+		case strings.Contains(lower, "elixir"):
+			healFormula = "25"
+		case strings.Contains(lower, "lesser"):
+			healFormula = "2d4+2"
+		case strings.Contains(lower, "health"):
+			healFormula = "4d4+4"
+		}
+
+		rollRes, err := EvaluateRoll(healFormula)
+		healAmount := 10
+		if err == nil {
+			healAmount = rollRes.Total
+		}
+
+		// Apply healing to character (+hp)
+		if err := s.characters.ApplyDamage(ctx, charID, healAmount); err != nil {
+			return model.ConsumeItemResult{}, err
+		}
+
+		result.EffectType = "heal"
+		result.HealAmount = healAmount
+		result.EffectValue = healFormula
+		result.Message = fmt.Sprintf("Consumed %s: Restored %d Hit Points!", item.Name, healAmount)
+
+	case item.IsPortalScroll():
+		result.EffectType = "portal"
+		result.EffectValue = "Teleport Refuge"
+		result.Message = fmt.Sprintf("Cast %s: Opened a magical town portal portal to safety!", item.Name)
+
+	case item.IsCombatScroll():
+		result.EffectType = "spell"
+		result.Damage = item.Damage
+		result.EffectValue = item.Damage + " " + item.DamageType
+		result.Message = fmt.Sprintf("Unleashed %s: Deals %s %s damage!", item.Name, item.Damage, item.DamageType)
+
+	default:
+		return model.ConsumeItemResult{}, invalid("item", "this item is not a recognized consumable")
+	}
+
+	// Consume 1 unit from inventory
+	if item.Quantity <= 1 {
+		if err := s.characters.DeleteItem(ctx, itemID); err != nil {
+			return model.ConsumeItemResult{}, err
+		}
+	} else {
+		itemInput := model.CharacterItemInput{
+			Name:           item.Name,
+			Quantity:       item.Quantity - 1,
+			Weight:         item.Weight,
+			CostCP:         item.CostCP,
+			Equipped:       item.Equipped,
+			AttackBonus:    item.AttackBonus,
+			Damage:         item.Damage,
+			DamageType:     item.DamageType,
+			Description:    item.Description,
+			ReqLevel:       item.ReqLevel,
+			ReqClass:       item.ReqClass,
+			ReqStr:         item.ReqStr,
+			ReqDex:         item.ReqDex,
+			ReqCon:         item.ReqCon,
+			ReqInt:         item.ReqInt,
+			ReqWis:         item.ReqWis,
+			ReqCha:         item.ReqCha,
+			TeachesSkillID: item.TeachesSkillID,
+			SetName:        item.SetName,
+			SetPiece:       item.SetPiece,
+			SetBonus2pc:    item.SetBonus2pc,
+			SetBonus4pc:    item.SetBonus4pc,
+		}
+		if err := s.characters.UpdateItem(ctx, itemID, itemInput); err != nil {
+			return model.ConsumeItemResult{}, err
+		}
+	}
+
+	return result, nil
+}
+
 // Pending Loot Drops (DM Queue)
 func (s *SkillService) ListPendingLoot(ctx context.Context, campaignID int64) ([]model.PendingLootDrop, error) {
 	return s.repo.ListPendingLoot(ctx, campaignID)

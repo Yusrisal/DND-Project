@@ -98,6 +98,26 @@ func (h *SkillHandler) UseScroll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, sheet)
 }
 
+func (h *SkillHandler) UseConsumable(w http.ResponseWriter, r *http.Request) {
+	charID, ok := pathID(w, r)
+	if !ok {
+		return
+	}
+	var in struct {
+		ItemID int64 `json:"item_id"`
+	}
+	if !decode(w, r, &in) {
+		return
+	}
+	u := userFrom(r.Context())
+	res, err := h.svc.UseConsumable(r.Context(), u, charID, in.ItemID)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
+}
+
 func (h *SkillHandler) AllocateStat(w http.ResponseWriter, r *http.Request) {
 	charID, ok := pathID(w, r)
 	if !ok {
