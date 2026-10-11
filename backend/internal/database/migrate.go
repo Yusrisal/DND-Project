@@ -188,8 +188,10 @@ func parseName(filename string) (version int64, name, direction string, err erro
 	return version, rest[underscore+1:], direction, nil
 }
 
-// exec runs a migration file statement by statement, stripping comments and empty lines,
-// since MySQL/MariaDB rejects multiple statements or stray comment blocks in one Exec.
+// exec runs a migration file statement by statement, stripping comments and empty lines.
+// If an ALTER TABLE statement fails because a column or constraint already exists
+// (e.g. from a partially applied migration in MySQL/MariaDB which does not roll back DDL),
+// it ignores the duplicate error so the migration can complete safely.
 func exec(ctx context.Context, db *sql.DB, body string) error {
 	for _, statement := range strings.Split(body, ";") {
 		clean := cleanStatement(statement)
@@ -197,10 +199,29 @@ func exec(ctx context.Context, db *sql.DB, body string) error {
 			continue
 		}
 		if _, err := db.ExecContext(ctx, clean); err != nil {
+			if isIgnorableDDLError(err) {
+				slog.Warn("ignoring idempotent DDL error", "error", err)
+				continue
+			}
 			return err
 		}
 	}
 	return nil
+}
+
+func isIgnorableDDLError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	// MySQL/MariaDB Error 1060: Duplicate column name
+	// MySQL/MariaDB Error 1061: Duplicate key name
+	// MySQL/MariaDB Error 1050: Table already exists
+	// MySQL/MariaDB Error 1826: Duplicate foreign key constraint name
+	return strings.Contains(msg, "duplicate column name") ||
+		strings.Contains(msg, "duplicate key name") ||
+		strings.Contains(msg, "already exists") ||
+		strings.Contains(msg, "duplicate foreign key")
 }
 
 func cleanStatement(raw string) string {
