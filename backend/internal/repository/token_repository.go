@@ -20,8 +20,18 @@ var tokenSortColumns = []string{"id", "name", "created_at", "updated_at"}
 
 func TokenSortColumns() []string { return tokenSortColumns }
 
-const tokenColumns = `id, map_id, owner_user_id, character_id, monster_id, name, image_url, color, size,
-	hp_current, hp_max, armor_class, x, y, created_at, updated_at`
+// A token linked to a sheet does not own its vitals: the sheet does. Reading
+// them through the join means the board, the initiative list and the health
+// bars all agree with the character sheet without a second round trip, and
+// without the two copies drifting apart. An unlinked token keeps its own
+// columns, which is what COALESCE falls back to.
+const tokenColumns = `t.id, t.map_id, t.owner_user_id, t.character_id, t.monster_id, t.name, t.image_url,
+	t.color, t.size,
+	COALESCE(c.hp_current, t.hp_current), COALESCE(c.hp_max, t.hp_max),
+	COALESCE(c.armor_class, t.armor_class),
+	t.x, t.y, t.created_at, t.updated_at`
+
+const tokenFrom = ` FROM tokens t LEFT JOIN characters c ON c.id = t.character_id `
 
 func scanToken(row interface{ Scan(...any) error }) (model.Token, error) {
 	var t model.Token
@@ -34,7 +44,7 @@ func scanToken(row interface{ Scan(...any) error }) (model.Token, error) {
 // ListByMap returns every token on a map. Tokens are bounded per map, so the
 // board does not paginate; the paginated list is List.
 func (r *TokenRepository) ListByMap(ctx context.Context, mapID int64) ([]model.Token, error) {
-	rows, err := r.db.QueryContext(ctx, `SELECT `+tokenColumns+` FROM tokens WHERE map_id = ? ORDER BY id`, mapID)
+	rows, err := r.db.QueryContext(ctx, `SELECT `+tokenColumns+tokenFrom+`WHERE t.map_id = ? ORDER BY t.id`, mapID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,20 +64,23 @@ func (r *TokenRepository) ListByMap(ctx context.Context, mapID int64) ([]model.T
 func (r *TokenRepository) List(ctx context.Context, mapID int64, q model.Query) ([]model.Token, int64, error) {
 	where, args := "WHERE 1 = 1", []any{}
 	if mapID > 0 {
-		where += " AND map_id = ?"
+		where += " AND t.map_id = ?"
 		args = append(args, mapID)
 	}
 	if q.Search != "" {
-		where += " AND name LIKE ?"
+		where += " AND t.name LIKE ?"
 		args = append(args, "%"+q.Search+"%")
 	}
 
 	var total int64
-	if err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM tokens "+where, args...).Scan(&total); err != nil {
+	if err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM tokens t "+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	query := fmt.Sprintf(`SELECT %s FROM tokens %s ORDER BY %s %s LIMIT ? OFFSET ?`, tokenColumns, where, q.SortBy, q.SortDir)
+	// The sort column is qualified because the join makes a bare `name` or
+	// `created_at` ambiguous. It is still allowlisted before it gets here.
+	query := fmt.Sprintf(`SELECT %s%sORDER BY t.%s %s LIMIT ? OFFSET ?`,
+		tokenColumns, tokenFrom+where+" ", q.SortBy, q.SortDir)
 	rows, err := r.db.QueryContext(ctx, query, append(args, q.PageSize, q.Offset())...)
 	if err != nil {
 		return nil, 0, err
@@ -86,7 +99,7 @@ func (r *TokenRepository) List(ctx context.Context, mapID int64, q model.Query) 
 }
 
 func (r *TokenRepository) Get(ctx context.Context, id int64) (model.Token, error) {
-	return scanToken(r.db.QueryRowContext(ctx, `SELECT `+tokenColumns+` FROM tokens WHERE id = ?`, id))
+	return scanToken(r.db.QueryRowContext(ctx, `SELECT `+tokenColumns+tokenFrom+`WHERE t.id = ?`, id))
 }
 
 func (r *TokenRepository) Create(ctx context.Context, in model.TokenInput) (int64, error) {

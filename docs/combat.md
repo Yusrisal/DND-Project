@@ -128,6 +128,12 @@ where damage goes:
 This is what lets several goblins share one stat block and still die one at a
 time.
 
+Reads follow the same rule. `TokenRepository` selects the vitals through a
+`LEFT JOIN` on `characters` and falls back to the token's own columns with
+`COALESCE`, so the board, the initiative list and the character sheet cannot
+show three different numbers for one creature. Linking a token to a sheet is a
+DM action in the token form.
+
 Hit points are clamped between zero and the maximum by the `UPDATE` itself, so
 nothing goes negative and no race can push a creature past full health.
 

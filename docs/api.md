@@ -264,6 +264,17 @@ a player and may be `null` for a monster or an NPC, which only the DM can move.
 `color` defaults to `#c0392b` and `size` to `1`, measured in grid cells. `x` and
 `y` are the pixel coordinates of the token centre and default to `0`.
 
+`character_id` links the token to a sheet, and it changes where the vitals live.
+A linked token does not own its hit points: `hp_current`, `hp_max` and
+`armor_class` are read from the character on the way out and the columns on the
+token row are ignored, so damage dealt on the board and healing applied on the
+sheet are the same number. An unlinked token keeps its own. A `character_id`
+that matches no sheet is a 422 rather than a silently unlinked token.
+
+The two fields answer different questions and are set independently:
+`owner_user_id` decides **who may drag it**, `character_id` decides **whose hit
+points it spends**. A player's own figure normally sets both.
+
 Position is also writable through `PUT`, but a drag should use the socket — it
 is one frame instead of a round trip, and it skips the echo back to the mover.
 

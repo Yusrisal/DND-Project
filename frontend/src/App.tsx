@@ -11,6 +11,7 @@ import { InputModal } from './components/InputModal'
 import { MapCanvas } from './components/MapCanvas'
 import { MapFormModal, type MapFormValues } from './components/MapFormModal'
 import { PlayerSidebar } from './components/PlayerSidebar'
+import { TokenFormModal, type TokenFormValues } from './components/TokenFormModal'
 import { useAuth } from './hooks/useAuth'
 import { useSession } from './hooks/useSession'
 
@@ -64,6 +65,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
 
   // null closed, 'new' creating, a map when editing.
   const [mapForm, setMapForm] = useState<GameMap | 'new' | null>(null)
+  const [tokenForm, setTokenForm] = useState<Token | 'new' | null>(null)
 
   const { tokens, feed, encounter, connected, rejected, moveToken, sendMessage, roll, attack } =
     useSession(map?.id ?? null)
@@ -208,24 +210,22 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
       alert('Please create or select a Map first before adding tokens!')
       return
     }
-    setModalConfig({
-      isOpen: true,
-      title: 'Create Token',
-      label: 'Token Name',
-      placeholder: 'e.g. Goblin Archer #1',
-      onSubmit: async (name) => {
-        try {
-          await api.createToken({
-            map_id: map.id,
-            name,
-            color: TOKEN_COLORS[tokens.length % TOKEN_COLORS.length],
-            owner_user_id: null,
-          })
-        } catch (err) {
-          report(err)
-        }
-      },
-    })
+    setTokenForm('new')
+  }
+
+  const submitTokenForm = async (values: TokenFormValues) => {
+    try {
+      if (tokenForm === 'new') {
+        if (!map) return
+        await api.createToken({ map_id: map.id, ...values })
+        return
+      }
+      if (!tokenForm) return
+      await api.updateToken(tokenForm.id, { ...tokenForm, ...values })
+    } catch (err) {
+      report(err)
+    }
+    // Either way the server broadcasts the change, so the board updates itself.
   }
 
   const addCharacter = () => {
@@ -329,6 +329,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           targetTokenId={targetTokenId}
           onSelectToken={setTargetTokenId}
           onCreateToken={addToken}
+          onEditToken={setTokenForm}
           onToggleCondition={toggleCondition}
           onDeleteToken={(id) => void api.deleteToken(id).catch(report)}
           ownerName={ownerName}
@@ -494,6 +495,17 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
         map={mapForm === 'new' ? null : mapForm}
         onClose={() => setMapForm(null)}
         onSubmit={submitMapForm}
+      />
+
+      <TokenFormModal
+        key={tokenForm === 'new' ? 'new-token' : (tokenForm?.id ?? 'closed-token')}
+        isOpen={tokenForm !== null}
+        token={tokenForm === 'new' ? null : tokenForm}
+        players={players}
+        characters={characters}
+        defaultColor={TOKEN_COLORS[tokens.length % TOKEN_COLORS.length]}
+        onClose={() => setTokenForm(null)}
+        onSubmit={submitTokenForm}
       />
     </div>
   )

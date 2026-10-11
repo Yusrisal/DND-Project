@@ -11,11 +11,12 @@ import (
 )
 
 type TokenService struct {
-	repo *repository.TokenRepository
+	repo       *repository.TokenRepository
+	characters *repository.CharacterRepository
 }
 
-func NewTokenService(repo *repository.TokenRepository) *TokenService {
-	return &TokenService{repo: repo}
+func NewTokenService(repo *repository.TokenRepository, characters *repository.CharacterRepository) *TokenService {
+	return &TokenService{repo: repo, characters: characters}
 }
 
 // Board returns every token on a map, which is what a client loads on join.
@@ -60,6 +61,9 @@ func (s *TokenService) Create(ctx context.Context, in model.TokenInput) (model.T
 	if in.MapID <= 0 {
 		return model.Token{}, invalid("map_id", "is required")
 	}
+	if err := s.checkCharacter(ctx, in.CharacterID); err != nil {
+		return model.Token{}, err
+	}
 	id, err := s.repo.Create(ctx, in)
 	if err != nil {
 		return model.Token{}, err
@@ -70,6 +74,9 @@ func (s *TokenService) Create(ctx context.Context, in model.TokenInput) (model.T
 func (s *TokenService) Update(ctx context.Context, id int64, in model.TokenInput) (model.Token, error) {
 	in, err := normalizeToken(in)
 	if err != nil {
+		return model.Token{}, err
+	}
+	if err := s.checkCharacter(ctx, in.CharacterID); err != nil {
 		return model.Token{}, err
 	}
 	if err := s.repo.Update(ctx, id, in); err != nil {
@@ -109,6 +116,25 @@ func (s *TokenService) Delete(ctx context.Context, id int64) error {
 		return ErrNotFound
 	}
 	return err
+}
+
+// checkCharacter rejects a link to a sheet that does not exist, so a bad id
+// fails loudly at the write instead of silently reading as an unlinked token
+// once the join finds nothing.
+func (s *TokenService) checkCharacter(ctx context.Context, characterID *int64) error {
+	if characterID == nil {
+		return nil
+	}
+	if *characterID <= 0 {
+		return invalid("character_id", "is not a valid sheet")
+	}
+	if _, err := s.characters.Get(ctx, *characterID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return invalid("character_id", "no such character sheet")
+		}
+		return err
+	}
+	return nil
 }
 
 func normalizeToken(in model.TokenInput) (model.TokenInput, error) {

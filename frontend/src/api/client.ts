@@ -161,8 +161,11 @@ export const api = {
 
   board: (mapId: number) => request<Token[]>(`/maps/${mapId}/tokens`),
 
-  createToken: (input: { map_id: number; name: string; color: string; owner_user_id: number | null }) =>
+  createToken: (input: Partial<Token> & { map_id: number; name: string }) =>
     request<Token>('/tokens', json(input)),
+
+  updateToken: (id: number, input: Partial<Token> & { name: string }) =>
+    request<Token>(`/tokens/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
 
   deleteToken: (id: number) => request<void>(`/tokens/${id}`, { method: 'DELETE' }),
 

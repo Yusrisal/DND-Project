@@ -49,6 +49,7 @@ type Props = {
   targetTokenId: number | null
   onSelectToken: (id: number) => void
   onCreateToken: () => void
+  onEditToken: (token: Token) => void
   onToggleCondition: (token: Token) => void
   onDeleteToken: (id: number) => void
   ownerName: (token: Token) => string
@@ -219,7 +220,15 @@ export function DMSidebar(props: Props) {
                           `${token.hp_current}/${token.hp_max} hp · AC ${token.armor_class}`}
                         {(token.conditions || []).length > 0 && ` · ${(token.conditions || []).join(', ')}`}
                         {props.ownerName(token) && ` · ${props.ownerName(token)}`}
+                        {token.character_id !== null && ' · sheet'}
                       </div>
+                    </button>
+                    <button
+                      className="text-[11px] text-slate-400 hover:text-indigo-300 px-1"
+                      onClick={() => props.onEditToken(token)}
+                      title="Owner, sheet, portrait, size"
+                    >
+                      edit
                     </button>
                     <button
                       className="text-[11px] text-slate-400 hover:text-indigo-300 px-1"

@@ -35,7 +35,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 
 	authService := service.NewAuthService(userRepo, repository.NewSessionRepository(db))
 	mapService := service.NewMapService(repository.NewMapRepository(db))
-	tokenService := service.NewTokenService(tokenRepo)
+	tokenService := service.NewTokenService(tokenRepo, characterRepo)
 	chatService := service.NewChatService(repository.NewChatRepository(db))
 	rollService := service.NewRollService(repository.NewRollRepository(db))
 	characterService := service.NewCharacterService(characterRepo)
