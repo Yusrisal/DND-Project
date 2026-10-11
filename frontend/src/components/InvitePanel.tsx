@@ -51,31 +51,65 @@ export function InvitePanel({ onError }: Props) {
   const open = invites.filter((invite) => invite.used_by === null)
 
   return (
-    <section>
-      <header>
-        <h2>Invites</h2>
-        <span className="actions">
-          <button onClick={() => create('player')}>+ player</button>
-          <button onClick={() => create('dm')}>+ dm</button>
-        </span>
+    <section className="space-y-3 pt-3 border-t-2 border-[#2b3145]">
+      <header className="flex items-center justify-between">
+        <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Invites</h2>
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => create('player')}
+            className="px-2 py-1 text-[9px] font-bold bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black uppercase shadow-[1px_1px_0px_#000]"
+          >
+            + Player
+          </button>
+          <button
+            onClick={() => create('dm')}
+            className="px-2 py-1 text-[9px] font-bold bg-[#3b123d] border-2 border-[#e056fd] text-[#e056fd] hover:bg-[#be2edd] hover:text-white uppercase shadow-[1px_1px_0px_#000]"
+          >
+            + DM
+          </button>
+        </div>
       </header>
 
-      {open.length === 0 && <p className="hint">No unused codes.</p>}
+      {open.length === 0 && <p className="text-[10px] text-[#57606f] italic py-1">No unused invite codes.</p>}
 
-      <ul>
+      <div className="space-y-1.5">
         {open.map((invite) => (
-          <li key={invite.code} className="invite-row">
-            <code>{invite.code}</code>
-            <span className={invite.role === 'dm' ? 'badge dm' : 'badge'}>{invite.role}</span>
-            <button className="link" onClick={() => copy(invite.code)}>
-              {copied === invite.code ? 'copied' : 'copy'}
-            </button>
-            <button className="link" onClick={() => revoke(invite.code)}>
-              revoke
-            </button>
-          </li>
+          <div
+            key={invite.code}
+            className="flex items-center justify-between p-2 bg-[#12141d] border-2 border-[#2b3145] text-xs"
+          >
+            <div className="flex items-center gap-2">
+              <code className="text-[#66fcf1] font-mono font-bold text-[11px] bg-black px-1.5 py-0.5 border border-[#232838]">
+                {invite.code}
+              </code>
+              <span
+                className={`text-[9px] px-1 py-0.5 font-bold uppercase border ${
+                  invite.role === 'dm'
+                    ? 'bg-[#3b123d] text-[#e056fd] border-[#e056fd]'
+                    : 'bg-[#18233c] text-[#686de0] border-[#686de0]'
+                }`}
+              >
+                {invite.role}
+              </span>
+            </div>
+
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => copy(invite.code)}
+                className="px-2 py-0.5 bg-[#1e272e] border border-[#66fcf1] text-[#66fcf1] hover:bg-[#66fcf1] hover:text-black text-[9px] font-bold uppercase"
+              >
+                {copied === invite.code ? 'COPIED!' : 'COPY'}
+              </button>
+              <button
+                onClick={() => revoke(invite.code)}
+                className="px-2 py-0.5 bg-[#2d1214] border border-[#ff4757] text-[#ff4757] hover:bg-[#ff4757] hover:text-white text-[9px] font-bold uppercase"
+              >
+                REVOKE
+              </button>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   )
 }

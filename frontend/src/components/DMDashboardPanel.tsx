@@ -408,97 +408,122 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
   }
 
   return (
-    <div className="dm-dashboard">
-      <div className="tabs" style={{ marginBottom: '8px' }}>
+    <div className="space-y-3 text-xs">
+      {/* 8-bit Retro Tool Subtabs */}
+      <div className="flex flex-wrap gap-1 p-1 bg-[#08090d] border-2 border-[#2b3145]">
         <button
-          className={tab === 'environments' ? 'tab active' : 'tab'}
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'environments'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
           onClick={() => setTab('environments')}
         >
-          🌲 Environment
+          ENV
         </button>
         <button
-          className={tab === 'items' ? 'tab active' : 'tab'}
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'items'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
           onClick={() => setTab('items')}
         >
-          🗡️ Items
+          ITEMS
         </button>
         <button
-          className={tab === 'drops' ? 'tab active' : 'tab'}
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'drops'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
           onClick={() => setTab('drops')}
         >
-          💀 Drops
+          DROPS
         </button>
         <button
-          className={tab === 'spells' ? 'tab active' : 'tab'}
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'spells'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
           onClick={() => setTab('spells')}
         >
-          ✨ Spells/Skills
+          SPELLS
         </button>
         <button
-          className={tab === 'statuses' ? 'tab active' : 'tab'}
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'statuses'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
           onClick={() => setTab('statuses')}
         >
-          🌀 Statuses
+          STATUS
         </button>
       </div>
 
       {/* 1. Environments Tab */}
       {tab === 'environments' && (
-        <section>
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Environments & Hazards</h2>
-            <button onClick={addEnvironment}>+ hazard</button>
+        <section className="space-y-2">
+          <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Environments</h2>
+            <button
+              onClick={addEnvironment}
+              className="px-2 py-0.5 text-[9px] font-bold bg-[#1f5156] border border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black"
+            >
+              + NEW
+            </button>
           </header>
 
           <input
             value={envSearch}
             onChange={(e) => setEnvSearch(e.target.value)}
-            placeholder="Search hazards, traps, weather..."
-            style={{ margin: '6px 0' }}
+            placeholder="SEARCH HAZARDS / WEATHER..."
+            className="w-full bg-[#090a0f] border-2 border-[#2b3145] p-1.5 text-[10px] text-[#e0e2ec] placeholder-[#57606f] focus:outline-none focus:border-[#66fcf1]"
           />
 
-          {environments.length === 0 && <p className="hint">No environment hazards defined.</p>}
-          <div className="list">
-            <ul>
-              {environments.map((env) => (
-                <li key={env.id} className="list-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <div>
-                    <span className="list-name">
-                      <strong>{env.name}</strong> <em style={{ fontSize: '0.85em' }}>({env.kind})</em>
-                      {env.difficulty_dc > 0 && <em> · DC {env.difficulty_dc}</em>}
-                      {env.damage && <em> · {env.damage} {env.damage_type}</em>}
-                    </span>
-                    {env.effect_description && (
-                      <p className="hint" style={{ margin: '2px 0', fontSize: '0.8em' }}>
-                        {env.effect_description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {environments.length === 0 && <p className="text-[10px] text-[#57606f] italic text-center py-2">NO HAZARDS DEFINED.</p>}
+          <div className="space-y-1.5">
+            {environments.map((env) => (
+              <div key={env.id} className="p-2 bg-[#12141d] border-2 border-[#2b3145] space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#66fcf1] text-[11px] uppercase">{env.name}</span>
+                  <span className="text-[9px] text-[#ffa502] border border-[#454d66] px-1 bg-black">
+                    [{env.kind.toUpperCase()}]
+                  </span>
+                </div>
+                {env.effect_description && (
+                  <p className="text-[10px] text-[#a4b0be] m-0 leading-tight">{env.effect_description}</p>
+                )}
+                <div className="flex items-center gap-2 text-[9px] text-[#747d8c] pt-1 border-t border-[#1e2333]">
+                  {env.difficulty_dc > 0 && <span>DC: {env.difficulty_dc}</span>}
+                  {env.damage && <span>DMG: {env.damage}</span>}
+                  <div className="ml-auto flex gap-1.5 items-center">
+                    <button
+                      className={`px-1 text-[9px] border ${env.active ? 'bg-[#1f5156] text-[#66fcf1] border-[#66fcf1]' : 'bg-[#1e2333] text-[#747d8c] border-[#343b52]'}`}
+                      onClick={() => toggleEnvironment(env)}
+                    >
+                      {env.active ? 'ON' : 'OFF'}
+                    </button>
                     {env.damage && (
                       <button
-                        className="pill on"
+                        className="px-1 bg-[#2f3542] text-white hover:bg-[#66fcf1] hover:text-black"
                         onClick={() => onRoll(env.damage, `${env.name} damage`, null)}
-                        title="Roll hazard damage"
                       >
-                        roll
+                        ROLL
                       </button>
                     )}
                     <button
-                      className={env.active ? 'pill on' : 'pill'}
-                      onClick={() => toggleEnvironment(env)}
-                      title="Toggle active"
+                      className="text-[#ff4757] hover:underline bg-transparent border-none cursor-pointer"
+                      onClick={() => deleteEnvironment(env.id)}
                     >
-                      {env.active ? 'active' : 'inactive'}
-                    </button>
-                    <button className="link" onClick={() => deleteEnvironment(env.id)}>
-                      remove
+                      [DEL]
                     </button>
                   </div>
-                </li>
-              ))}
-            </ul>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -722,24 +747,33 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
 
       {/* 5. Status Effects & Conditions Tab */}
       {tab === 'statuses' && (
-        <section>
-          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Status Effects & Conditions</h2>
-            <button onClick={addStatusEffect}>+ custom effect</button>
+        <section className="space-y-2">
+          <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Status Effects</h2>
+            <button
+              onClick={addStatusEffect}
+              className="px-2 py-0.5 text-[9px] font-bold bg-[#1f5156] border border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black"
+            >
+              + NEW
+            </button>
           </header>
 
-          <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
+          <div className="flex gap-1.5">
             <input
               value={statusSearch}
               onChange={(e) => setStatusSearch(e.target.value)}
-              placeholder="Search conditions, buffs, debuffs..."
-              style={{ flex: 1 }}
+              placeholder="SEARCH STATUSES..."
+              className="flex-1 bg-[#090a0f] border-2 border-[#2b3145] p-1.5 text-[10px] text-[#e0e2ec] placeholder-[#57606f] focus:outline-none focus:border-[#66fcf1]"
             />
-            <select value={statusKind} onChange={(e) => setStatusKind(e.target.value)}>
-              <option value="">All kinds</option>
+            <select
+              value={statusKind}
+              onChange={(e) => setStatusKind(e.target.value)}
+              className="bg-[#090a0f] border-2 border-[#2b3145] px-1 text-[10px] text-[#e0e2ec]"
+            >
+              <option value="">ALL KINDS</option>
               {STATUS_KINDS.map((k) => (
                 <option key={k} value={k}>
-                  {k}
+                  {k.toUpperCase()}
                 </option>
               ))}
             </select>
@@ -747,53 +781,54 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
 
           {/* Custom buffs / debuffs */}
           {statusEffects.length > 0 && (
-            <div style={{ marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '0.9em', color: '#aaa', margin: '6px 0' }}>Custom Buffs, Debuffs & Hazards</h3>
-              <div className="list">
-                <ul>
-                  {statusEffects.map((eff) => (
-                    <li key={eff.id} className="list-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <div>
-                        <span className="list-name" style={{ borderLeft: `3px solid ${eff.color}`, paddingLeft: '6px' }}>
-                          <strong>{eff.name}</strong> <em style={{ fontSize: '0.85em' }}>({eff.kind})</em>
-                          {eff.default_duration_rounds > 0 && <em> · {eff.default_duration_rounds} rounds</em>}
-                        </span>
-                        {eff.effect_description && (
-                          <p className="hint" style={{ margin: '2px 0', fontSize: '0.8em' }}>
-                            {eff.effect_description}
-                          </p>
-                        )}
-                      </div>
-                      <button className="link" onClick={() => deleteStatusEffect(eff.id)}>
-                        remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+            <div className="space-y-1">
+              <h3 className="text-[10px] font-bold text-[#ffa502] uppercase tracking-wider">Custom Effects</h3>
+              <div className="space-y-1">
+                {statusEffects.map((eff) => (
+                  <div key={eff.id} className="p-2 bg-[#12141d] border-2 border-[#2b3145] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[#66fcf1] uppercase text-[10px]" style={{ color: eff.color }}>
+                        {eff.name}
+                      </span>
+                      <span className="text-[9px] text-[#747d8c] border border-[#2b3145] px-1">
+                        [{eff.kind.toUpperCase()}] {eff.default_duration_rounds > 0 && `· ${eff.default_duration_rounds}R`}
+                      </span>
+                    </div>
+                    {eff.effect_description && (
+                      <p className="text-[10px] text-[#a4b0be] m-0">{eff.effect_description}</p>
+                    )}
+                    <button
+                      className="text-[#ff4757] hover:underline text-[9px] bg-transparent border-none cursor-pointer"
+                      onClick={() => deleteStatusEffect(eff.id)}
+                    >
+                      [DEL]
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* Core 5e Conditions Reference */}
-          <h3 style={{ fontSize: '0.9em', color: '#aaa', margin: '6px 0' }}>Core 5e Conditions</h3>
-          <div className="list">
-            <ul>
+          <div className="space-y-1 pt-2 border-t border-[#2b3145]">
+            <h3 className="text-[10px] font-bold text-[#e0e2ec] uppercase tracking-wider">5e Conditions</h3>
+            <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
               {CORE_CONDITIONS_5E.filter(
                 (c) =>
                   !statusSearch ||
                   c.name.toLowerCase().includes(statusSearch.toLowerCase()) ||
                   c.desc.toLowerCase().includes(statusSearch.toLowerCase()),
               ).map((cond) => (
-                <li key={cond.name} className="list-row" style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span className="list-name">
-                    <strong>{cond.name.toUpperCase()}</strong>
+                <div key={cond.name} className="p-2 bg-[#12141d] border-2 border-[#1e2333] space-y-0.5">
+                  <span className="font-bold text-[#66fcf1] text-[10px] tracking-wide block">
+                    [{cond.name.toUpperCase()}]
                   </span>
-                  <p className="hint" style={{ margin: '2px 0', fontSize: '0.8em', lineHeight: 1.3 }}>
+                  <p className="text-[10px] text-[#8e98af] m-0 leading-snug">
                     {cond.desc}
                   </p>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </section>
       )}

@@ -70,17 +70,18 @@ export function DMSidebar(props: Props) {
   const [tab, setTab] = useState<Tab>('board')
 
   return (
-    <aside className="w-[340px] flex-shrink-0 bg-[#161820] border-r border-[#232834] flex flex-col h-screen overflow-hidden text-slate-200">
+    <aside className="w-[380px] flex-shrink-0 bg-[#0f1118] border-r-4 border-[#2b3145] flex flex-col h-screen overflow-hidden text-[#c5c6c7] select-none">
       <AccountBar user={props.user} onLogout={props.onLogout} />
 
-      <div className="grid grid-cols-4 gap-1 p-2 bg-[#12141a] border-b border-[#232834]">
+      {/* 8-Bit Pixel Navigation Tabs */}
+      <div className="grid grid-cols-4 gap-1.5 p-2 bg-[#08090d] border-b-2 border-[#2b3145]">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
-            className={`py-1.5 px-2 text-[11px] font-medium rounded capitalize transition-all border ${
+            className={`py-2 px-1 text-[10px] font-bold uppercase transition-all tracking-wide ${
               tab === id
-                ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-600/30'
-                : 'bg-[#181b24] text-slate-400 border-[#262b3a] hover:bg-[#202430] hover:text-slate-200'
+                ? 'bg-[#1f5156] text-[#66fcf1] border-2 border-[#66fcf1] shadow-[2px_2px_0px_#051a1c]'
+                : 'bg-[#151822] text-[#8e98af] border-2 border-[#2c3345] hover:border-[#45a29e] hover:text-[#e0e2ec]'
             }`}
             onClick={() => setTab(id)}
           >
@@ -268,33 +269,45 @@ export function DMSidebar(props: Props) {
       )}
 
       {tab === 'setup' && (
-        <>
-          <section>
-            <header>
-              <h2>Campaigns</h2>
-              <button onClick={props.onCreateCampaign}>+</button>
+        <div className="space-y-4">
+          <section className="space-y-2">
+            <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+              <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Campaigns</h2>
+              <button
+                onClick={props.onCreateCampaign}
+                className="px-2.5 py-1 text-[9px] font-bold bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black uppercase shadow-[1px_1px_0px_#000]"
+              >
+                + New Campaign
+              </button>
             </header>
             <input
               value={props.search}
               onChange={(event) => props.onSearch(event.target.value)}
-              placeholder="Search campaigns"
+              placeholder="SEARCH CAMPAIGNS..."
+              className="w-full bg-[#090a0f] border-2 border-[#2b3145] p-1.5 text-[10px] text-[#e0e2ec] placeholder-[#57606f] focus:outline-none focus:border-[#66fcf1]"
             />
-            <ul>
+            <div className="space-y-1">
               {props.campaigns.map((item) => (
-                <li key={item.id}>
-                  <button
-                    className={item.id === props.campaign?.id ? 'row active' : 'row'}
-                    onClick={() => props.onSelectCampaign(item)}
-                  >
-                    {item.name}
-                  </button>
-                </li>
+                <button
+                  key={item.id}
+                  className={`w-full text-left p-2 border-2 text-[11px] font-bold transition-all ${
+                    item.id === props.campaign?.id
+                      ? 'bg-[#1f5156] border-[#66fcf1] text-[#66fcf1] shadow-[2px_2px_0px_#051a1c]'
+                      : 'bg-[#12141d] border-[#2b3145] text-[#8e98af] hover:border-[#45a29e] hover:text-white'
+                  }`}
+                  onClick={() => props.onSelectCampaign(item)}
+                >
+                  ⚔️ {item.name.toUpperCase()}
+                </button>
               ))}
-            </ul>
+              {props.campaigns.length === 0 && (
+                <p className="text-[10px] text-[#57606f] italic text-center py-2">NO CAMPAIGNS CREATED YET.</p>
+              )}
+            </div>
           </section>
 
           <InvitePanel onError={props.onError} />
-        </>
+        </div>
       )}
       </div>
     </aside>

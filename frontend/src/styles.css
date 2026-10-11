@@ -3,64 +3,72 @@
 @layer base {
   :root {
     color-scheme: dark;
-    --bg: #121419;
-    --panel: #1b1d23;
-    --border: #2b2f39;
-    --text: #e7e8ea;
-    --muted: #9aa0ab;
-    --accent: #6c8cff;
+    --pixel-font: "Press Start 2P", monospace;
+    --retro-font: "Silkscreen", monospace;
   }
 
   body {
     margin: 0;
-    background-color: #121419;
-    color: #e7e8ea;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
+    background-color: #0b0c10;
+    color: #c5c6c7;
+    font-family: var(--retro-font), monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    image-rendering: pixelated;
+  }
+
+  h1, h2, h3, .pixel-text {
+    font-family: var(--pixel-font), monospace;
   }
 
   button {
     cursor: pointer;
+    font-family: var(--retro-font), monospace;
   }
 }
 
-/* Base utility layers for DnD UI */
-@utility card {
-  background-color: #1b1d23;
-  border: 1px solid #2b2f39;
-  border-radius: 6px;
+/* 8-bit Retro Box Shadows & Borders */
+@utility retro-box {
+  background-color: #12141d;
+  border: 3px solid #333a4d;
+  box-shadow: 3px 3px 0px #050608;
 }
 
-@utility btn {
-  background: transparent;
-  border: 1px solid #2b2f39;
-  border-radius: 6px;
-  color: inherit;
-  padding: 2px 8px;
-  font-size: 13px;
-  transition: all 0.15s ease;
+@utility retro-box-gold {
+  background-color: #16151f;
+  border: 3px solid #d4af37;
+  box-shadow: 3px 3px 0px #4d3a08;
+}
+
+@utility retro-btn {
+  border: 2px solid #454d66;
+  box-shadow: 2px 2px 0px #0b0d14;
+  transition: all 0.05s ease;
   &:hover {
-    border-color: #6c8cff;
+    border-color: #66fcf1;
+    color: #66fcf1;
+  }
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
   }
 }
 
-@utility btn-primary {
-  background-color: #6c8cff;
-  border: 1px solid #6c8cff;
-  color: #ffffff;
-  border-radius: 6px;
-  padding: 4px 12px;
-  font-weight: 500;
+@utility retro-btn-primary {
+  background-color: #1f5156;
+  border: 2px solid #66fcf1;
+  color: #66fcf1;
+  box-shadow: 2px 2px 0px #0a1f21;
+  font-family: var(--retro-font), monospace;
+  font-weight: 700;
   &:hover {
-    background-color: #5879f0;
+    background-color: #45a29e;
+    color: #0b0c10;
   }
-}
-
-@utility app-layout {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr) 320px;
-  height: 100vh;
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
 }
 
 .sidebar {

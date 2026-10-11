@@ -293,49 +293,49 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
         />
       )}
 
-      <main className="flex-1 flex flex-col min-w-0 bg-[#0a0b0f] relative overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-2 bg-[#14161f] border-b border-[#232834] text-xs text-slate-300">
-          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500'}`} />
-          <span className="font-medium text-slate-200">
-            {map ? `${map.name} — ${connected ? 'Live' : 'Reconnecting'}` : 'No active map'}
+      <main className="flex-1 flex flex-col min-w-0 bg-[#07080a] relative overflow-hidden">
+        <div className="flex items-center gap-3 px-3 py-1.5 bg-[#0e1017] border-b-2 border-[#2b3145] text-xs">
+          <span className={`w-2.5 h-2.5 border border-black ${connected ? 'bg-[#2ed573] shadow-[0_0_8px_#2ed573]' : 'bg-[#ff4757]'}`} />
+          <span className="font-bold text-[#e0e2ec] tracking-wider text-[11px]">
+            {map ? `MAP: ${map.name.toUpperCase()} [${connected ? 'ONLINE' : 'RECONNECTING'}]` : 'MAP: [NONE SELECTED]'}
           </span>
           {targetTokenId !== null && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-950/50 border border-indigo-700/50 text-indigo-300 text-[11px]">
-              targeting {tokens.find((t) => t.id === targetTokenId)?.name ?? 'Token'}
+            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-[#1e272e] border-2 border-[#ffa502] text-[#ffa502] text-[10px] font-bold">
+              TARGET: {tokens.find((t) => t.id === targetTokenId)?.name.toUpperCase() ?? 'TOKEN'}
               <button
-                className="text-slate-400 hover:text-white ml-1 bg-transparent border-none cursor-pointer"
+                className="text-[#ffa502] hover:text-white ml-1 bg-transparent border-none cursor-pointer"
                 onClick={() => setTargetTokenId(null)}
               >
-                ✕
+                [X]
               </button>
             </span>
           )}
           {isDM && campaign && (
             <button
-              className={`ml-auto px-2.5 py-1 text-xs rounded border transition-colors ${
+              className={`ml-auto px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border-2 transition-all ${
                 campaign.is_paused
-                  ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500 font-semibold'
-                  : 'bg-[#1e222e] hover:bg-[#282d3d] text-slate-300 border-[#2d3446]'
+                  ? 'bg-[#e17055] text-white border-[#fab1a0] shadow-[2px_2px_0px_#000]'
+                  : 'bg-[#1e272e] text-[#d2dae2] border-[#485460] hover:border-[#66fcf1]'
               }`}
               onClick={handleTogglePause}
               title={campaign.is_paused ? 'Resume live session' : 'Pause live session'}
             >
-              {campaign.is_paused ? '▶ Resume Session' : '⏸ Pause Session'}
+              {campaign.is_paused ? '▶ RESUME' : '⏸ PAUSE'}
             </button>
           )}
         </div>
 
         {campaign?.is_paused && (
-          <div className="bg-amber-950/80 border-b border-amber-600 text-amber-200 px-4 py-2 text-xs flex items-center justify-between z-20">
+          <div className="bg-[#2d1406] border-b-2 border-[#e17055] text-[#fab1a0] px-4 py-2 text-xs flex items-center justify-between z-20 font-bold">
             <span>
-              ☕ <strong>Session Paused</strong> — {campaign.pause_message || 'Game saved at checkpoint. Break time!'}
+              [PAUSED] {campaign.pause_message || 'SESSION SUSPENDED BY DUNGEON MASTER'}
             </span>
             {isDM && (
               <button
-                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-semibold"
+                className="px-2 py-0.5 bg-[#e17055] hover:bg-[#d63031] text-white border border-white text-[10px] font-bold"
                 onClick={handleTogglePause}
               >
-                Resume Live Session
+                UNPAUSE
               </button>
             )}
           </div>
@@ -343,11 +343,11 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
 
         {(error || rejected) && (
           <div
-            className="bg-red-500/10 border-b border-red-500/30 text-red-300 px-4 py-2 text-xs flex items-center justify-between cursor-pointer"
+            className="bg-[#380e0e] border-b-2 border-[#ff4757] text-[#ff6b81] px-4 py-2 text-xs flex items-center justify-between cursor-pointer font-bold"
             onClick={() => setError(null)}
           >
-            <span>{error ?? rejected}</span>
-            <span className="text-[10px] text-red-400">Click to dismiss</span>
+            <span>ERROR: {error ?? rejected}</span>
+            <span className="text-[10px]">[DISMISS]</span>
           </div>
         )}
 
@@ -357,7 +357,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           onRoll={roll}
         />
 
-        <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+        <div className="flex-1 relative overflow-hidden flex items-center justify-center bg-[radial-gradient(#151822_1px,transparent_1px)] bg-[size:16px_16px]">
           {map ? (
             <MapCanvas
               map={map}
@@ -373,17 +373,17 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
               }}
             />
           ) : (
-            <div className="text-center p-8 text-slate-500 space-y-2">
-              <div className="text-3xl">🗺️</div>
-              <p className="text-sm">
-                {isDM ? 'Select or create a map from the board tab to start playing.' : 'Waiting for the DM to open a map.'}
+            <div className="text-center p-8 text-[#57606f] space-y-3">
+              <div className="text-4xl">⚔️</div>
+              <p className="text-xs font-bold uppercase tracking-widest text-[#747d8c]">
+                {isDM ? 'SELECT OR CREATE A MAP TO BEGIN BATTLE' : 'WAITING FOR THE DM TO LOAD A MAP...'}
               </p>
             </div>
           )}
         </div>
       </main>
 
-      <div className="w-[320px] flex-shrink-0 bg-[#161820] border-l border-[#232834] flex flex-col h-screen overflow-hidden">
+      <div className="w-[340px] flex-shrink-0 bg-[#0f1118] border-l-4 border-[#2b3145] flex flex-col h-screen overflow-hidden text-[#c5c6c7]">
         {map && (
           <InitiativePanel
             mapId={map.id}
