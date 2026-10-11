@@ -9,7 +9,7 @@ import type {
   StatusEffect,
 } from '../api/types'
 import { matches, price, sellPrice } from './wiki-format'
-import { CORE_CONDITIONS, GLOSSARY, HOW_TO_PLAY } from './wiki-rules'
+import { GLOSSARY, HOW_TO_PLAY } from './wiki-rules'
 
 type Props = {
   campaignId: number | null
@@ -111,10 +111,6 @@ export function WikiPage({ campaignId, onClose, onError }: Props) {
     [search],
   )
 
-  const visibleConditions = useMemo(
-    () => CORE_CONDITIONS.filter((entry) => matches(search, entry.name, entry.body)),
-    [search],
-  )
 
   const current = SECTIONS.find((entry) => entry.id === section)
 
@@ -284,35 +280,24 @@ export function WikiPage({ campaignId, onClose, onError }: Props) {
           )}
 
           {section === 'conditions' && (
-            <>
-              <Cards empty={visibleConditions.length === 0} emptyText="Nothing matches that.">
-                {visibleConditions.map((entry) => (
-                  <Card key={entry.name} title={entry.name} tag="condition">
-                    <p>{entry.body}</p>
+            <Cards
+              loading={loading}
+              empty={statuses.length === 0}
+              emptyText="No conditions found. Migration 000021 seeds the standard fifteen; the DM adds more under TOOLS."
+            >
+              {statuses
+                .filter((status) => matches(search, status.name, status.kind, status.effect_description))
+                .map((status) => (
+                  <Card key={status.id} title={status.name} tag={status.kind}>
+                    <p className="wiki-stats">
+                      {status.default_duration_rounds > 0
+                        ? `lasts ${status.default_duration_rounds} rounds by default`
+                        : 'lasts until something ends it'}
+                    </p>
+                    {status.effect_description && <p>{status.effect_description}</p>}
                   </Card>
                 ))}
-              </Cards>
-
-              {statuses.length > 0 && (
-                <>
-                  <h2 className="wiki-subhead">Added by your DM</h2>
-                  <Cards empty={false}>
-                    {statuses
-                      .filter((status) => matches(search, status.name, status.kind, status.effect_description))
-                      .map((status) => (
-                        <Card key={status.id} title={status.name} tag={status.kind}>
-                          <p className="wiki-stats">
-                            {status.default_duration_rounds > 0
-                              ? `lasts ${status.default_duration_rounds} rounds by default`
-                              : 'lasts until removed'}
-                          </p>
-                          {status.effect_description && <p>{status.effect_description}</p>}
-                        </Card>
-                      ))}
-                  </Cards>
-                </>
-              )}
-            </>
+            </Cards>
           )}
         </main>
       </div>

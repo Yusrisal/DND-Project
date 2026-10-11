@@ -278,7 +278,13 @@ Rules worth keeping:
 - **MySQL does not roll DDL back in a transaction.** A migration that fails
   halfway leaves the earlier statements applied. Keep each migration small, and
   prefer one DDL statement per file.
-- **There is no seeder,** by design. Create fixtures through the API.
+- **There is no seeder,** by design. Create campaign fixtures through the API.
+  Reference data is the exception and ships in a migration, because it is part
+  of the schema's meaning rather than one group's content: the class skill trees
+  (`000017`), the bestiary (`000020`) and the standard conditions (`000021`).
+  Those rows are global (`campaign_id IS NULL`) and hold a reserved id range, so
+  the `down` file removes exactly what it added and leaves anything a DM wrote
+  alone.
 
 ## Adding a resource
 

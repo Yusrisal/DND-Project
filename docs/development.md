@@ -145,6 +145,11 @@ screen. Reference reading wants the width, and the board is not being looked at
 while someone is working out what "prone" does. It is the only route in the app,
 so it is a `hashchange` listener in `App.tsx` rather than a router dependency.
 
+Everything the wiki lists except the prose and the glossary is read from the
+API, so what the DM edits under TOOLS is what players read. Nothing is
+duplicated into the frontend — the standard conditions are rows from migration
+`000021`, not a hardcoded array.
+
 Role gating in the UI is a convenience. Every rule is enforced again in the
 service layer — see [auth.md](auth.md).
 
