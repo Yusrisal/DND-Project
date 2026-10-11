@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type {
   Character,
+  ClassSkill,
   CompendiumItem,
   CompendiumSpell,
   Environment,
@@ -14,7 +15,7 @@ import type {
   StatusEffectKind,
 } from '../api/types'
 
-type DashboardTab = 'environments' | 'items' | 'drops' | 'spells' | 'statuses' | 'loot_review' | 'progression_control'
+type DashboardTab = 'environments' | 'items' | 'drops' | 'spells' | 'class_skills' | 'statuses' | 'loot_review' | 'progression_control'
 
 type Props = {
   campaignId: number | null
@@ -168,6 +169,25 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
       return () => clearTimeout(timer)
     }
   }, [tab, refreshStatusEffects])
+
+  // Compendium Class Skills state
+  const [classSkills, setClassSkills] = useState<ClassSkill[]>([])
+  const [selectedClass, setSelectedClass] = useState<string>('all')
+  const [skillSearch, setSkillSearch] = useState<string>('')
+  const [skillTier, setSkillTier] = useState<number>(-1)
+
+  const refreshClassSkills = useCallback(() => {
+    api
+      .listSkillTrees(selectedClass === 'all' ? undefined : selectedClass)
+      .then((res) => setClassSkills(res ?? []))
+      .catch(onError)
+  }, [selectedClass, onError])
+
+  useEffect(() => {
+    if (tab === 'class_skills') {
+      refreshClassSkills()
+    }
+  }, [tab, refreshClassSkills])
 
   // Environment actions
   const addEnvironment = async () => {
@@ -545,6 +565,16 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
         </button>
         <button
           className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'class_skills'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
+          onClick={() => setTab('class_skills')}
+        >
+          SKILLS
+        </button>
+        <button
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
             tab === 'loot_review'
               ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
               : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
@@ -855,6 +885,99 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
               ))}
             </ul>
           </div>
+        </section>
+      )}
+
+      {/* 4b. ARPG Class Skills Tab */}
+      {tab === 'class_skills' && (
+        <section>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Class Skills Catalog ({classSkills.length} Total)</h2>
+          </header>
+
+          <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              style={{ width: '130px' }}
+            >
+              <option value="all">All Classes</option>
+              <option value="Mage">Mage</option>
+              <option value="Assassin">Assassin</option>
+              <option value="Warrior">Warrior</option>
+              <option value="Archer">Archer</option>
+              <option value="Cleric">Cleric</option>
+            </select>
+            <select
+              value={skillTier}
+              onChange={(e) => setSkillTier(parseInt(e.target.value, 10))}
+              style={{ width: '100px' }}
+            >
+              <option value={-1}>All Tiers</option>
+              <option value={1}>Tier 1</option>
+              <option value={2}>Tier 2</option>
+              <option value={3}>Tier 3</option>
+              <option value={4}>Tier 4</option>
+              <option value={5}>Tier 5</option>
+            </select>
+            <input
+              value={skillSearch}
+              onChange={(e) => setSkillSearch(e.target.value)}
+              placeholder="Search skill name or damage..."
+              style={{ flex: 1 }}
+            />
+          </div>
+
+          {(() => {
+            const filtered = classSkills.filter((s) => {
+              if (selectedClass !== 'all' && s.class_name.toLowerCase() !== selectedClass.toLowerCase()) return false
+              if (skillTier !== -1 && s.tier !== skillTier) return false
+              if (skillSearch.trim()) {
+                const q = skillSearch.toLowerCase()
+                return s.name.toLowerCase().includes(q) || s.damage.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)
+              }
+              return true
+            })
+
+            return (
+              <div className="list">
+                {filtered.length === 0 && <p className="hint">No matching class skills.</p>}
+                <ul>
+                  {filtered.map((sk) => (
+                    <li key={sk.id} className="list-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div>
+                        <span className="list-name">
+                          <strong>{sk.name}</strong>{' '}
+                          <em style={{ fontSize: '0.85em', color: '#66fcf1' }}>
+                            [{sk.class_name} · Tier {sk.tier} · Req Lv {sk.req_level}]
+                          </em>
+                          {sk.damage && <em> · {sk.damage} {sk.damage_type}</em>}
+                          {sk.cooldown_rounds > 0 && <em> · CD: {sk.cooldown_rounds}r</em>}
+                        </span>
+                        {sk.description && (
+                          <p className="hint" style={{ margin: '2px 0', fontSize: '0.8em' }}>
+                            {sk.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        {sk.damage && (
+                          <button
+                            className="pill on"
+                            onClick={() => onRoll(sk.damage, `${sk.name} damage`, null)}
+                            title="Roll damage"
+                          >
+                            roll
+                          </button>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })()}
         </section>
       )}
 
