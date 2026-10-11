@@ -8,7 +8,9 @@ import (
 
 const (
 	defaultPageSize = 20
-	maxPageSize     = 100
+	// The seeded bestiary alone is 105 rows, and the pickers that list it want
+	// the whole set in one request.
+	maxPageSize = 250
 )
 
 // Query carries the pagination, search and sort options shared by every list endpoint.

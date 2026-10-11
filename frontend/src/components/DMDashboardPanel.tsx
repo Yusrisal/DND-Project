@@ -25,6 +25,17 @@ type Props = {
   onError: (error: unknown) => void
 }
 
+const DASHBOARD_TABS: { id: DashboardTab; label: string }[] = [
+  { id: 'environments', label: 'ENV' },
+  { id: 'items', label: 'ITEMS' },
+  { id: 'drops', label: 'DROPS' },
+  { id: 'spells', label: 'SPELLS' },
+  { id: 'class_skills', label: 'SKILLS' },
+  { id: 'statuses', label: 'STATUS' },
+  { id: 'loot_review', label: 'LOOT' },
+  { id: 'progression_control', label: 'XP/LVL' },
+]
+
 const ENV_KINDS: EnvironmentKind[] = ['hazard', 'weather', 'terrain', 'trap', 'aura']
 const ITEM_CATEGORIES = ['all', 'weapon', 'armor', 'potion', 'scroll', 'wondrous', 'gear']
 const STATUS_KINDS: StatusEffectKind[] = ['condition', 'buff', 'debuff', 'hazard']
@@ -522,77 +533,23 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
   return (
     <div className="space-y-3 text-xs">
       {/* 8-bit Retro Tool Subtabs */}
-      <div className="flex flex-wrap gap-1 p-1 bg-[#08090d] border-2 border-[#2b3145]">
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'environments'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('environments')}
-        >
-          ENV
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'items'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('items')}
-        >
-          ITEMS
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'drops'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('drops')}
-        >
-          DROPS
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'spells'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('spells')}
-        >
-          SPELLS
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'class_skills'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('class_skills')}
-        >
-          SKILLS
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'loot_review'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('loot_review')}
-        >
-          LOOT QUEUE
-        </button>
-        <button
-          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'progression_control'
-              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
-              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
-          }`}
-          onClick={() => setTab('progression_control')}
-        >
-          XP/LEVELS
-        </button>
+      <div className="grid grid-cols-3 gap-1 p-1 bg-[#08090d] border-2 border-[#2b3145]">
+        {DASHBOARD_TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            aria-pressed={tab === id}
+            title={label}
+            className={`py-1.5 px-1 text-[9px] font-bold uppercase leading-tight transition-all ${
+              tab === id
+                ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+                : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+            }`}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* 1. Environments Tab */}
@@ -670,12 +627,11 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
             </button>
           </header>
 
-          <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
+          <div className="filter-bar">
             <input
               value={itemSearch}
               onChange={(e) => setItemSearch(e.target.value)}
               placeholder="Search items..."
-              style={{ flex: 1 }}
             />
             <select value={itemCategory} onChange={(e) => setItemCategory(e.target.value)}>
               {ITEM_CATEGORIES.map((cat) => (
@@ -729,8 +685,8 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
             </button>
           </header>
 
-          <div style={{ margin: '6px 0' }}>
-            <label style={{ fontSize: '0.85em', marginRight: '6px' }}>Monster:</label>
+          <div className="filter-bar">
+            <label style={{ fontSize: '0.85em' }}>Monster:</label>
             <select
               value={selectedMonsterId ?? ''}
               onChange={(e) => setSelectedMonsterId(Number(e.target.value) || null)}
@@ -818,12 +774,11 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
             </button>
           </header>
 
-          <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
+          <div className="filter-bar">
             <input
               value={spellSearch}
               onChange={(e) => setSpellSearch(e.target.value)}
               placeholder="Search spells, skills..."
-              style={{ flex: 1 }}
             />
             <select
               value={spellLevel}
@@ -895,36 +850,29 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
             <h2>Class Skills Catalog ({classSkills.length} Total)</h2>
           </header>
 
-          <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              style={{ width: '130px' }}
-            >
-              <option value="all">All Classes</option>
-              <option value="Mage">Mage</option>
-              <option value="Assassin">Assassin</option>
-              <option value="Warrior">Warrior</option>
-              <option value="Archer">Archer</option>
-              <option value="Cleric">Cleric</option>
-            </select>
-            <select
-              value={skillTier}
-              onChange={(e) => setSkillTier(parseInt(e.target.value, 10))}
-              style={{ width: '100px' }}
-            >
-              <option value={-1}>All Tiers</option>
-              <option value={1}>Tier 1</option>
-              <option value={2}>Tier 2</option>
-              <option value={3}>Tier 3</option>
-              <option value={4}>Tier 4</option>
-              <option value={5}>Tier 5</option>
-            </select>
+          <div className="filter-bar">
+            <div className="filter-bar-row">
+              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+                <option value="all">All Classes</option>
+                <option value="Mage">Mage</option>
+                <option value="Assassin">Assassin</option>
+                <option value="Warrior">Warrior</option>
+                <option value="Archer">Archer</option>
+                <option value="Cleric">Cleric</option>
+              </select>
+              <select value={skillTier} onChange={(e) => setSkillTier(parseInt(e.target.value, 10))}>
+                <option value={-1}>All Tiers</option>
+                <option value={1}>Tier 1</option>
+                <option value={2}>Tier 2</option>
+                <option value={3}>Tier 3</option>
+                <option value={4}>Tier 4</option>
+                <option value={5}>Tier 5</option>
+              </select>
+            </div>
             <input
               value={skillSearch}
               onChange={(e) => setSkillSearch(e.target.value)}
               placeholder="Search skill name or damage..."
-              style={{ flex: 1 }}
             />
           </div>
 
@@ -961,16 +909,15 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {sk.damage && (
-                          <button
-                            className="pill on"
-                            onClick={() => onRoll(sk.damage, `${sk.name} damage`, null)}
-                            title="Roll damage"
-                          >
-                            roll
-                          </button>
-                        )}
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                        <button
+                          className="pill on"
+                          disabled={!sk.damage}
+                          onClick={() => onRoll(sk.damage, `${sk.name} damage`, null)}
+                          title={sk.damage ? `Roll ${sk.damage} ${sk.damage_type}` : 'This skill has no damage roll'}
+                        >
+                          roll
+                        </button>
                       </div>
                     </li>
                   ))}

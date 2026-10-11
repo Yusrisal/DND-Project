@@ -291,8 +291,10 @@ export const api = {
 
   // Bestiary
 
+  // The seeded bestiary is 105 entries, so a page_size of 100 silently dropped
+  // the last five bosses from the picker.
   listMonsters: (search = '') =>
-    request<Page<Monster>>(`/monsters${query({ search, page_size: 100, sort_dir: 'asc' })}`),
+    request<Page<Monster>>(`/monsters${query({ search, page_size: 200, sort_dir: 'asc' })}`),
 
   statBlock: (id: number) => request<MonsterStatBlock>(`/monsters/${id}`),
 
