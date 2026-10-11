@@ -91,7 +91,7 @@ func (s *CharacterService) CheckEquipRequirements(char model.Character, item mod
 	if char.Level < item.ReqLevel {
 		return fmt.Errorf("requires level %d (current: %d)", item.ReqLevel, char.Level)
 	}
-	if item.ReqClass != "" && !strings.EqualFold(char.Class, item.ReqClass) {
+	if item.ReqClass != "" && !strings.EqualFold(item.ReqClass, "all") && !strings.EqualFold(item.ReqClass, "any") && !strings.EqualFold(char.Class, item.ReqClass) {
 		return fmt.Errorf("requires class %s (current: %s)", item.ReqClass, char.Class)
 	}
 	if item.ReqStr > 0 && char.Abilities.Strength < item.ReqStr {
