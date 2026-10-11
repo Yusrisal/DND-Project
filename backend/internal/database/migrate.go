@@ -188,16 +188,31 @@ func parseName(filename string) (version int64, name, direction string, err erro
 	return version, rest[underscore+1:], direction, nil
 }
 
-// exec runs a migration file statement by statement, since MySQL rejects
-// multiple statements in one Exec unless the DSN opts in.
+// exec runs a migration file statement by statement, stripping comments and empty lines,
+// since MySQL/MariaDB rejects multiple statements or stray comment blocks in one Exec.
 func exec(ctx context.Context, db *sql.DB, body string) error {
 	for _, statement := range strings.Split(body, ";") {
-		if strings.TrimSpace(statement) == "" {
+		clean := cleanStatement(statement)
+		if clean == "" {
 			continue
 		}
-		if _, err := db.ExecContext(ctx, statement); err != nil {
+		if _, err := db.ExecContext(ctx, clean); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func cleanStatement(raw string) string {
+	var lines []string
+	for _, line := range strings.Split(raw, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		if trimmed != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
