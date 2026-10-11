@@ -1,22 +1,23 @@
-# Deployment runbook
+# Installing and deploying
 
-Target: the Debian homeserver at `192.168.1.15`, running the service directly
-under systemd and exposed through the existing Cloudflare Tunnel. No Docker, no
-Dokploy. MySQL is the instance already on the box.
+Target: a Debian 13 homeserver running the service under systemd, behind the
+existing Cloudflare Tunnel. No Docker, no Dokploy. MySQL or MariaDB is whatever
+is already on the box.
 
-Everything here goes through [`deploy/dnd-deploy`](../deploy/dnd-deploy), a
-POSIX shell script that needs only `ssh`, `scp` and `tar` locally, so it runs
-from Git Bash on Windows as well as from Linux.
+Everything goes through [`deploy/dnd-deploy`](../deploy/dnd-deploy), a POSIX
+shell script with no dependencies beyond what Debian ships.
 
-```
+```bash
 ./deploy/dnd-deploy --help
 ```
 
 ## What gets deployed
 
-One Go binary serves the API, the websocket and the built frontend, so there is
-a single unit and a single tunnel ingress rule. Releases sit side by side and
-are switched with a symlink:
+One Go binary serves the API, the websocket **and** the built frontend, so there
+is a single unit and a single tunnel ingress rule. There is no separate
+frontend server, and no second port to configure.
+
+Releases sit side by side and are switched with a symlink:
 
 ```
 /opt/dnd/
@@ -29,106 +30,199 @@ are switched with a symlink:
 ```
 
 The symlink is what makes a rollback a swap and a restart rather than a rebuild.
-`WEB_DIR` and the unit both point through `current`, so neither has to change
-when a release does.
+`WEB_DIR` and the unit both point through `current`, so neither changes when a
+release does.
 
 Migrations are embedded in both binaries, so `backend/migrations/` is never
-copied to the server.
+copied anywhere.
 
-## Prerequisites
+## Two ways to run it
 
-- Go 1.25+ and Node 20+ on the machine you deploy from. The binary is
-  cross-compiled with `CGO_ENABLED=0`, so it is static and the server needs
-  nothing installed.
-- SSH access to the homeserver, with `sudo` for the account you log in as.
-- A MySQL database and user on the server.
-- `curl` on the server, used for the health check.
+The script works in either direction, and `SSH_HOST` is the switch.
 
-## First install
+| | **Local** — repo is on the server | **Remote** — push from a workstation |
+| --- | --- | --- |
+| `SSH_HOST` | empty | `192.168.1.15` |
+| Builds on | the server | the workstation, cross-compiled |
+| Needs on the server | Go 1.25+, Node 20+ | nothing but systemd and curl |
+| Transfer | none, installed in place | tar over scp |
 
-1. **Configure the deploy script.**
+Local is simplest when you already edit on the server over SSH. Remote keeps
+build tools off the server. Nothing else differs — same commands, same result.
 
-   ```bash
-   cp deploy/deploy.env.example deploy/deploy.env
-   ```
+## Install from scratch
 
-   Fill in `SSH_HOST`, `SSH_USER` and the hostname. The file is gitignored
-   because it names your server; it holds no passwords.
+### 1. Prerequisites
 
-2. **Create the database.**
+On whichever machine builds:
 
-   ```sql
-   CREATE DATABASE dnd CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'dnd'@'localhost' IDENTIFIED BY '<password>';
-   GRANT ALL PRIVILEGES ON dnd.* TO 'dnd'@'localhost';
-   ```
+```bash
+go version; node --version; npm --version
+```
 
-3. **Bootstrap the server.**
+Go 1.25+ and Node 20+. Debian 13 packages Go 1.24, which is fine — Go
+downloads the newer toolchain itself when `go.mod` asks for it — but a server
+with no outbound internet needs the tarball from go.dev instead.
 
-   ```bash
-   ./deploy/dnd-deploy setup
-   ```
+On the server:
 
-   This creates the `dnd` system account, makes `/opt/dnd` and
-   `/opt/dnd/releases`, installs the systemd unit and enables it. The first run
-   stops and tells you to write `/opt/dnd/.env`, because it will not invent
-   your database password:
+```bash
+apt update && apt install -y curl
+```
 
-   ```bash
-   scp deploy/env.production.example <user>@<host>:/tmp/dnd.env
-   ssh <user>@<host> "sudo install -o dnd -g dnd -m 600 /tmp/dnd.env /opt/dnd/.env && sudo nano /opt/dnd/.env"
-   ```
+`curl` is what the health check uses. Add `mariadb-server` too if the database
+is not already there.
 
-   [`deploy/env.production.example`](../deploy/env.production.example) explains
-   each setting. Two that bite:
+### 2. Database
 
-   - `CORS_ORIGINS` must be the real hostname. It gates both CORS and the
-     websocket `Origin` check, so a stale value here means the page loads fine
-     and the board silently never connects.
-   - `APP_ENV=production` marks the session cookie `Secure`. Correct behind the
-     tunnel, but it means you cannot sign in over plain `http://192.168.1.15:8080`.
+Skip if you have one. Otherwise:
 
-   Then run `setup` again.
+```sql
+CREATE DATABASE dnd CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'dnd'@'localhost' IDENTIFIED BY '<password>';
+GRANT ALL PRIVILEGES ON dnd.* TO 'dnd'@'localhost';
+```
 
-4. **Deploy.**
+`GRANT ALL`, not just read-write: migrations create and alter tables. A
+read-write grant fails on migration 1 with `Error 1142`.
 
-   ```bash
-   ./deploy/dnd-deploy release
-   ```
+On Debian, MariaDB authenticates root over a unix socket, so `sudo mariadb`
+needs no password.
 
-5. **Point the tunnel** at `http://localhost:8080` with one ingress rule, and
-   restart `cloudflared`. The tunnel carries the websocket upgrade on the same
-   rule; no separate route is needed.
+### 3. Get the code
 
-6. **Register the first account immediately.** While the `users` table is empty,
-   registration takes no invite code and creates a DM. Open the app, choose
-   **Use an invite**, leave the code field blank, and create your account before
-   anyone else can reach the hostname. Once one user exists the door closes and
-   every registration needs a code.
+```bash
+git clone <your remote> /var/www/html/DND-Project
+cd /var/www/html/DND-Project
+```
 
-7. **Confirm the board works**: create a campaign, a map and a token, and check
-   the status dot next to the map name is green.
+### 4. Configure the deploy
 
-## Deploying an update
+`deploy/deploy.env` is **gitignored**, so it never arrives with a pull. Create
+it on the machine you deploy from:
+
+```bash
+cp deploy/deploy.env.example deploy/deploy.env
+```
+
+For local mode on the server, as root:
+
+```
+SSH_HOST=
+SSH_USER=
+REMOTE_DIR=/opt/dnd
+SERVICE=dnd-api
+SERVICE_USER=dnd
+SUDO=
+HEALTH_URL=http://localhost:8101/api/health
+KEEP_RELEASES=5
+```
+
+`SERVICE_USER` is the unprivileged account the service runs as, created in the
+next step. It is not the account you deploy as.
+
+`HEALTH_URL` must match `HTTP_ADDR` in the server `.env`, and must point at
+`localhost` rather than the public hostname — see
+[Changing the port](#changing-the-port).
+
+### 5. Bootstrap the server
+
+```bash
+./deploy/dnd-deploy setup
+```
+
+Creates the `dnd` system account, makes `/opt/dnd` and `/opt/dnd/releases`,
+installs the systemd unit and enables it.
+
+The first run **stops and asks for `/opt/dnd/.env`**. That is the intended path,
+not a failure: the script will not invent your database password.
+
+### 6. Server configuration
+
+```bash
+cp deploy/env.production.example /opt/dnd/.env
+chown dnd:dnd /opt/dnd/.env && chmod 600 /opt/dnd/.env
+nano /opt/dnd/.env
+```
+
+[`deploy/env.production.example`](../deploy/env.production.example) explains
+every setting. The ones that must be right:
+
+```
+APP_ENV=production
+HTTP_ADDR=:8101
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=appuser
+DB_PASSWORD=<password>
+DB_NAME=dnd
+CORS_ORIGINS=https://dnd.example.online
+WEB_DIR=/opt/dnd/current/dist
+```
+
+Three that bite:
+
+- **`CORS_ORIGINS` must be the real hostname.** It gates both CORS and the
+  websocket `Origin` check, so a stale value means the page loads fine and the
+  board silently never connects — which reads as "realtime is broken" rather
+  than "config is wrong".
+- **`APP_ENV=production` marks the session cookie `Secure`.** Correct behind the
+  tunnel, but you then cannot sign in over plain `http://<ip>:8101`. Use
+  `development` temporarily if you want to test before the tunnel is up.
+- **`WEB_DIR` points at `current`, not at a release.** Point it at a release
+  directory and the app keeps serving that one forever.
+
+Then run setup again:
+
+```bash
+./deploy/dnd-deploy setup
+```
+
+### 7. Deploy
 
 ```bash
 ./deploy/dnd-deploy release
 ```
 
-In order, that:
+### 8. Tunnel
 
-1. Cross-compiles both binaries and builds the frontend into `.deploy-stage`.
-2. Tars it up, uploads it, and unpacks it into a new timestamped release.
-3. Runs `migrate up` **with the new binary, before the switch** — the new code
-   may expect columns the old schema does not have.
+One ingress rule, hostname → `http://localhost:8101`. The tunnel carries the
+websocket upgrade on the same rule; there is no second route to add.
+
+```bash
+systemctl restart cloudflared
+```
+
+### 9. Claim the DM account
+
+**Do this before anyone else can reach the hostname.** While the `users` table
+is empty, registration takes no invite code and creates a DM. Open the site,
+choose **Use an invite**, leave the code blank. Once one user exists the door
+closes and every registration needs a code from the DM.
+
+Then create a campaign, a map and a token, and check the status dot beside the
+map name is green. Green means the websocket is up.
+
+## Deploying an update
+
+```bash
+git pull && ./deploy/dnd-deploy release
+```
+
+In order, `release`:
+
+1. Builds both binaries and the frontend into `.deploy-stage`.
+2. Installs them into a new timestamped release directory.
+3. Runs `migrate up` **with the new binary, before the switch** — new code may
+   expect columns the old schema lacks.
 4. Repoints `current` and restarts the service.
 5. Polls `/api/health` for 30 seconds.
 
 If the health check fails it puts `current` back, restarts, prints the last 40
 log lines and exits non-zero. **The schema is not rolled back**, because
-automatically reversing a migration is how data goes missing. See below.
+automatically reversing a migration is how data goes missing.
 
-Old releases beyond `KEEP_RELEASES` (default 5) are pruned, never the live one.
+Releases beyond `KEEP_RELEASES` are pruned. The live one is never pruned.
 
 ## Rollback
 
@@ -136,14 +230,14 @@ Old releases beyond `KEEP_RELEASES` (default 5) are pruned, never the live one.
 ./deploy/dnd-deploy rollback
 ```
 
-Points `current` at the previous release, restarts, and verifies health.
+Points `current` at the previous release, restarts, verifies health.
 
-The schema is deliberately left alone. If the release you backed out of added
-migrations, decide case by case:
+The schema is left alone deliberately. If the release you backed out of added
+migrations:
 
-- **It added a column or a table.** Leave the schema. The old binary ignores
-  what it does not know about, which is the safer outcome.
-- **It dropped or rewrote something.** Roll it back explicitly, knowing it may
+- **It added a column or table** — leave it. The old binary ignores what it does
+  not know about, which is the safer outcome.
+- **It dropped or rewrote something** — roll it back explicitly, knowing it may
   destroy data:
 
   ```bash
@@ -155,46 +249,64 @@ migrations, decide case by case:
 ```bash
 ./deploy/dnd-deploy status        # service, live release, health, migration version
 ./deploy/dnd-deploy releases      # what is on disk, and which is current
-./deploy/dnd-deploy logs 100      # last 100 journal lines
+./deploy/dnd-deploy logs 100
 ./deploy/dnd-deploy follow        # tail the journal
 ./deploy/dnd-deploy migrate status
 ./deploy/dnd-deploy restart
+./deploy/dnd-deploy build         # build without installing
 ./deploy/dnd-deploy ssh           # a shell in /opt/dnd
 ```
 
 `make deploy`, `make deploy-status`, `make deploy-logs` and
-`make deploy-rollback` wrap the common ones, if you have `make`.
+`make deploy-rollback` wrap the common ones.
+
+## Changing the port
+
+Three places, then a restart. No rebuild: the frontend uses same-origin
+relative paths, so it neither knows nor cares what port the server listens on.
+
+1. `HTTP_ADDR` in `/opt/dnd/.env`
+2. `HEALTH_URL` in `deploy/deploy.env`
+3. The tunnel ingress rule
+
+```bash
+./deploy/dnd-deploy restart
+```
+
+Getting 1 and 2 out of step is the nastiest failure mode available here: every
+future `release` looks like a failed deploy and auto-rolls-back a release that
+was actually fine. `HEALTH_URL` stays on `localhost` so that a DNS or tunnel
+problem cannot masquerade as a bad release.
 
 ## Troubleshooting
 
-| Symptom                                       | Check                                                                     |
-| --------------------------------------------- | ------------------------------------------------------------------------- |
-| `release` hangs with no output                | `sudo` is prompting for a password; the script allocates a tty, so answer it |
-| Permission denied writing `/opt/dnd`          | The login account needs `sudo`, or set `SUDO=` empty if you log in as root |
-| Health check fails but logs look fine         | `HEALTH_URL` is wrong, or `curl` is missing on the server                 |
-| Unit will not start                           | `./deploy/dnd-deploy logs 50`; usually bad database credentials or an unreadable `.env` |
-| `/api/health` returns `degraded`              | MySQL is down or the credentials are wrong                                |
-| App loads, status dot stays red               | `CORS_ORIGINS` does not match the hostname, so the websocket upgrade is refused |
-| Blank page, API responds                      | `WEB_DIR` is unset or does not point at `/opt/dnd/current/dist`           |
-| Signed in, then immediately signed out again  | `APP_ENV=production` while serving plain HTTP, so the browser drops the `Secure` cookie |
-| Tokens move locally but others do not see it  | Players are on different maps, or the socket reconnect loop is running — check the dot |
-| A player cannot drag their token              | It has no `owner_user_id`, or it belongs to someone else; the DM reassigns it |
-| Registration rejects every code               | Codes are single-use and expire after seven days; mint a fresh one          |
-| Nobody can register and there is no DM        | A user already exists, so the bootstrap is closed. Mint a code as the existing DM, or delete the stray row and register again |
-| `Error 1045` at startup                       | MySQL user or password wrong in `/opt/dnd/.env`                           |
-| Migration fails halfway                       | MySQL does not roll DDL back; inspect the table, fix it by hand, then re-run |
-
-Logs are structured and go to the journal:
+| Symptom | Check |
+| --- | --- |
+| `Permission denied` running the script | `chmod +x deploy/dnd-deploy`. Git stores the mode, but a checkout on a filesystem without exec bits loses it |
+| `bad interpreter: /bin/sh^M` | The script got CRLF line endings. [`.gitattributes`](../.gitattributes) pins LF; re-clone or run `dos2unix deploy/dnd-deploy` |
+| `no deploy/deploy.env` | It is gitignored on purpose. Create it on this machine from the example |
+| Health check fails, logs look fine | `HEALTH_URL` does not match `HTTP_ADDR`, or `curl` is missing on the server |
+| `release` hangs with no output | `sudo` is waiting for a password. Set `SUDO=` empty if you are root |
+| `Error 1142` during migration | The database user lacks `CREATE`/`ALTER`. `GRANT ALL PRIVILEGES ON dnd.* TO ...` |
+| `Error 1045` at startup | Wrong database user or password in `/opt/dnd/.env` |
+| Unit will not start | `./deploy/dnd-deploy logs 50`; usually bad credentials or an unreadable `.env` |
+| `/api/health` returns `degraded` | The database is down or the credentials are wrong |
+| Blank page, API responds | `WEB_DIR` unset or not pointing at `/opt/dnd/current/dist` |
+| App loads, status dot stays red | `CORS_ORIGINS` does not match the hostname, so the websocket upgrade is refused |
+| Signed in, then immediately signed out | `APP_ENV=production` while serving plain HTTP, so the browser drops the `Secure` cookie |
+| 502 at the hostname, `status` says healthy | The tunnel points at the wrong port. `status` checks localhost by design |
+| A player cannot drag their token | It has no `owner_user_id`, or belongs to someone else; the DM reassigns it |
+| Registration rejects every code | Codes are single-use and expire after seven days; mint a fresh one |
+| Nobody can register and there is no DM | A user already exists, so the bootstrap is closed. Mint a code as the existing DM, or delete the stray row |
+| Migration fails halfway | MySQL does not roll DDL back. Inspect the table, fix it by hand, re-run |
 
 ```bash
-./deploy/dnd-deploy logs 200
-ssh <user>@<host> "journalctl -u dnd-api --since '10 minutes ago' | grep -i error"
+journalctl -u dnd-api --since "10 minutes ago" | grep -i error
 ```
 
 ## Deploying by hand
 
-If the script is unavailable or you want to see what it does, the whole thing is
-four steps:
+The whole script is four steps, if you ever need to do it without it:
 
 ```bash
 # 1. build
@@ -203,34 +315,41 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o bin
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o bin/dnd-migrate ./cmd/migrate
 cd ../frontend && npm ci && npm run build
 
-# 2. upload into a new release directory
-ssh <host> "sudo install -d -o dnd -g dnd /opt/dnd/releases/manual"
-scp -r backend/bin frontend/dist <host>:/tmp/rel/
-ssh <host> "sudo cp -r /tmp/rel/* /opt/dnd/releases/manual/ && sudo chown -R dnd:dnd /opt/dnd/releases/manual && sudo chmod +x /opt/dnd/releases/manual/bin/*"
+# 2. install into a new release directory
+install -d -o dnd -g dnd /opt/dnd/releases/manual
+cp -r backend/bin frontend/dist /opt/dnd/releases/manual/
+chown -R dnd:dnd /opt/dnd/releases/manual
+chmod +x /opt/dnd/releases/manual/bin/*
 
 # 3. migrate, then switch
-ssh <host> "cd /opt/dnd && sudo -u dnd /opt/dnd/releases/manual/bin/dnd-migrate up"
-ssh <host> "sudo ln -sfn /opt/dnd/releases/manual /opt/dnd/current && sudo systemctl restart dnd-api"
+cd /opt/dnd && sudo -u dnd /opt/dnd/releases/manual/bin/dnd-migrate up
+ln -sfn /opt/dnd/releases/manual /opt/dnd/current && systemctl restart dnd-api
 
 # 4. verify
-ssh <host> "curl -s localhost:8080/api/health"
+curl -s localhost:8101/api/health
 ```
 
-The `chmod +x` matters when you build on Windows: the exec bit does not survive,
-so the binary arrives unrunnable.
+Run the migration from `/opt/dnd`, not from the release directory: the binary
+looks for `.env` relative to the working directory, the same way the unit does.
+
+`chmod +x` matters when the build came from Windows — the exec bit does not
+survive the trip, and the binary arrives unrunnable.
 
 ## Exposure
 
-The service has no rate limiting on `/api/auth/login`. Argon2id makes each
-attempt expensive, but nothing caps the attempts. If the hostname is reachable
-from the open internet rather than only over the tunnel to people you have
-invited, put Cloudflare Access or a rate limit in front of it. The full list of
-what the auth layer does not cover is in [auth.md](auth.md#what-this-does-not-do).
+There is no rate limiting on `/api/auth/login`. Argon2id makes each attempt
+expensive, but nothing caps the attempts. If the hostname is reachable from the
+open internet rather than only by people you have invited, put Cloudflare Access
+or a rate limit in front of it. The full list of what the auth layer does not
+cover is in [auth.md](auth.md#what-this-does-not-do).
 
 ## Notes on the unit
 
 [`deploy/dnd-api.service`](../deploy/dnd-api.service) runs as `dnd`, restarts on
 failure after 5s, and is sandboxed with `ProtectSystem=strict` plus a single
 `ReadWritePaths=/opt/dnd`. `ExecStart` goes through `current`, which is what
-lets a rollback be a symlink swap. If you move the install directory, both
+lets a rollback be a symlink swap. Move the install directory and both
 `ReadWritePaths` and `WEB_DIR` have to move with it.
+
+`After=` names both `mysql.service` and `mariadb.service`; systemd ignores
+whichever is not installed.

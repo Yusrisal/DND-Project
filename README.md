@@ -103,9 +103,13 @@ cp deploy/deploy.env.example deploy/deploy.env   # name your server
 ./deploy/dnd-deploy release                      # every time after that
 ```
 
-`release` cross-compiles, uploads a new timestamped release, migrates, switches
-a symlink, restarts and checks health — rolling itself back if the health check
+`release` builds, installs a new timestamped release, migrates, switches a
+symlink, restarts and checks health — rolling itself back if the health check
 fails. `rollback`, `status`, `logs` and `migrate` are the other commands worth
-knowing. Needs only ssh, scp and tar locally, so it works from Git Bash.
+knowing.
+
+It runs either on the server itself, or from a workstation that pushes over
+ssh; `SSH_HOST` in `deploy/deploy.env` is the switch. Note that file is
+gitignored, so create it wherever you deploy from.
 
 Full runbook, including the by-hand version: [deployment.md](docs/deployment.md).

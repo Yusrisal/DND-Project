@@ -62,6 +62,14 @@ Ask before starting the server, the frontend, or anything that touches MySQL.
 The walkthrough is in [docs/database.md](docs/database.md#adding-a-resource):
 migration, model, repository, service, handler, router — in that order.
 
+## Deploying
+
+`./deploy/dnd-deploy release` does the whole thing. It runs on the server or
+from a workstation over ssh, switched by `SSH_HOST` in `deploy/deploy.env`,
+which is gitignored. Releases are timestamped directories with a `current`
+symlink, so rollback is a swap. Do not deploy without being asked.
+See [docs/deployment.md](docs/deployment.md).
+
 ## Documentation
 
 Docs live in `docs/` and the README links to them rather than repeating them.
