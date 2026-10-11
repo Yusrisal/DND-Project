@@ -101,6 +101,7 @@ func NewRouter(cfg config.Config, db *sql.DB, hub *ws.Hub) http.Handler {
 	mux.HandleFunc("GET /api/shops", g.user(shops.List))
 	mux.HandleFunc("GET /api/shops/{id}", g.user(shops.Get))
 	mux.HandleFunc("POST /api/shop-items/{id}/buy", g.user(shops.BuyItem))
+	mux.HandleFunc("POST /api/shops/sell", g.user(shops.SellItem))
 	mux.HandleFunc("GET /api/environments", g.user(compendium.ListEnvironments))
 	mux.HandleFunc("GET /api/environments/{id}", g.user(compendium.GetEnvironment))
 	mux.HandleFunc("GET /api/compendium/items", g.user(compendium.ListItems))

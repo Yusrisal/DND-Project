@@ -143,3 +143,16 @@ func (h *ShopHandler) BuyItem(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, item)
 }
+
+func (h *ShopHandler) SellItem(w http.ResponseWriter, r *http.Request) {
+	var req model.SellItemRequest
+	if !decode(w, r, &req) {
+		return
+	}
+	result, err := h.svc.SellItem(r.Context(), userFrom(r.Context()), req)
+	if err != nil {
+		writeError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}

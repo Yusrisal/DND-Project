@@ -83,6 +83,24 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
     }
   }
 
+  const handleSellItem = async (item: CharacterItem) => {
+    const unitSellCP = Math.max(1, Math.floor(item.cost_cp / 2))
+    const sellPriceText = unitSellCP >= 100 ? `${(unitSellCP / 100).toFixed(2)} GP` : `${unitSellCP} CP`
+    const qty = Number(prompt(`Quantity of "${item.name}" to sell (max ${item.quantity}) at ${sellPriceText} each:`, '1')) || 1
+    if (qty <= 0) return
+    try {
+      const res = await api.sellItem({
+        character_id: character.id,
+        item_id: item.id,
+        quantity: qty,
+      })
+      alert(`Sold ${res.quantity_sold}x ${res.item_name} for ${res.refund_cp >= 100 ? (res.refund_cp / 100).toFixed(2) + ' GP' : res.refund_cp + ' CP'}!`)
+      refresh()
+    } catch (err) {
+      onError(err)
+    }
+  }
+
   const adjustHP = async (delta: number) => {
     try {
       await api.updateCharacter(character.id, {
@@ -578,6 +596,13 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
                   onClick={() => handleTransferItem(item)}
                 >
                   send
+                </button>
+                <button
+                  className="link"
+                  title={`Sell item to shop (50% value: ${Math.max(1, Math.floor(item.cost_cp / 2))} CP)`}
+                  onClick={() => handleSellItem(item)}
+                >
+                  sell
                 </button>
                 <button className="link" onClick={() => api.deleteItem(item.id).then(refresh).catch(onError)}>
                   remove

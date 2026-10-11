@@ -254,3 +254,80 @@ func (r *ShopRepository) BuyItem(ctx context.Context, shopItemID, characterID in
 
 	return createdID, tx.Commit()
 }
+
+// SellItem handles selling an item back to the merchant for 50% of cost_cp (or at least 1 CP).
+// It reduces quantity or deletes the item, and credits coins to the character.
+func (r *ShopRepository) SellItem(ctx context.Context, characterID, itemID int64, quantity int) (model.SellItemResult, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return model.SellItemResult{}, err
+	}
+	defer tx.Rollback()
+
+	// 1. Get character item
+	var name string
+	var costCP, currentQty int
+	err = tx.QueryRowContext(ctx,
+		`SELECT name, cost_cp, quantity FROM character_items WHERE id = ? AND character_id = ? FOR UPDATE`,
+		itemID, characterID).Scan(&name, &costCP, &currentQty)
+	if err != nil {
+		return model.SellItemResult{}, err
+	}
+	if quantity <= 0 || quantity > currentQty {
+		quantity = currentQty
+	}
+
+	unitSellPrice := costCP / 2
+	if unitSellPrice <= 0 && costCP > 0 {
+		unitSellPrice = 1 // min 1 cp if item has any value
+	}
+	totalRefundCP := unitSellPrice * quantity
+
+	// 2. Decrement or delete item
+	if quantity >= currentQty {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM character_items WHERE id = ?`, itemID); err != nil {
+			return model.SellItemResult{}, err
+		}
+	} else {
+		if _, err := tx.ExecContext(ctx, `UPDATE character_items SET quantity = quantity - ? WHERE id = ?`, quantity, itemID); err != nil {
+			return model.SellItemResult{}, err
+		}
+	}
+
+	// 3. Add refund coins to character (prefer GP/SP/CP distribution)
+	var cp, sp, ep, gp, pp int
+	if err := tx.QueryRowContext(ctx, `SELECT cp, sp, ep, gp, pp FROM characters WHERE id = ? FOR UPDATE`, characterID).
+		Scan(&cp, &sp, &ep, &gp, &pp); err != nil {
+		return model.SellItemResult{}, err
+	}
+
+	// Convert refund to GP, SP, CP
+	refundGP := totalRefundCP / 100
+	remainderCP := totalRefundCP % 100
+	refundSP := remainderCP / 10
+	refundCP := remainderCP % 10
+
+	gp += refundGP
+	sp += refundSP
+	cp += refundCP
+
+	if _, err := tx.ExecContext(ctx, `UPDATE characters SET cp = ?, sp = ?, gp = ? WHERE id = ?`,
+		cp, sp, gp, characterID); err != nil {
+		return model.SellItemResult{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.SellItemResult{}, err
+	}
+
+	return model.SellItemResult{
+		ItemName:     name,
+		QuantitySold: quantity,
+		RefundCP:     totalRefundCP,
+		CP:           cp,
+		SP:           sp,
+		EP:           ep,
+		GP:           gp,
+		PP:           pp,
+	}, nil
+}

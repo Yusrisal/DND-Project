@@ -222,11 +222,14 @@ export function ShopPanel({ campaignId, user, characters, activeCharacterId, onE
               {shopDetails.items.map((item) => {
                 const costDisplay =
                   item.cost_cp >= 100 ? `${(item.cost_cp / 100).toFixed(2).replace(/\.00$/, '')} GP` : `${item.cost_cp} CP`
+                const sellValCP = Math.max(1, Math.floor(item.cost_cp / 2))
+                const sellDisplay =
+                  sellValCP >= 100 ? `${(sellValCP / 100).toFixed(2).replace(/\.00$/, '')} GP` : `${sellValCP} CP`
                 return (
                   <li key={item.id} className="list-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span className="list-name">
-                        <strong>{item.name}</strong> · <em>{costDisplay}</em>
+                        <strong>{item.name}</strong> · <em>Buy: {costDisplay}</em> · <span className="hint" style={{ fontSize: '0.85em' }}>Sell: {sellDisplay}</span>
                         {item.quantity >= 0 && <span> ({item.quantity} in stock)</span>}
                         {item.damage && <span> · {item.damage} {item.damage_type}</span>}
                       </span>

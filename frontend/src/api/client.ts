@@ -335,6 +335,18 @@ export const api = {
   buyShopItem: (shopItemId: number, input: { character_id: number; quantity?: number }) =>
     request<CharacterItem>(`/shop-items/${shopItemId}/buy`, json(input)),
 
+  sellItem: (input: { character_id: number; item_id: number; quantity?: number }) =>
+    request<{
+      item_name: string
+      quantity_sold: number
+      refund_cp: number
+      cp: number
+      sp: number
+      ep: number
+      gp: number
+      pp: number
+    }>('/shops/sell', json(input)),
+
   // Environments
 
   listEnvironments: (campaignId: number, mapId?: number | null, params: ListParams = {}) =>

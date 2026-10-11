@@ -400,7 +400,10 @@ func (r *CharacterRepository) Item(ctx context.Context, id int64) (model.Charact
 	var i model.CharacterItem
 	err := r.db.QueryRowContext(ctx, `SELECT `+itemColumns+` FROM character_items WHERE id = ?`, id).
 		Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.CostCP, &i.Equipped,
-			&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description, &i.CreatedAt, &i.UpdatedAt)
+			&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description,
+			&i.ReqLevel, &i.ReqClass, &i.ReqStr, &i.ReqDex, &i.ReqCon, &i.ReqInt, &i.ReqWis, &i.ReqCha, &i.TeachesSkillID,
+			&i.SetName, &i.SetPiece, &i.SetBonus2pc, &i.SetBonus4pc,
+			&i.CreatedAt, &i.UpdatedAt)
 	return i, err
 }
 

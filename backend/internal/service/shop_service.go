@@ -165,6 +165,31 @@ func (s *ShopService) BuyItem(ctx context.Context, user model.User, shopItemID i
 	return s.characters.Item(ctx, createdID)
 }
 
+func (s *ShopService) SellItem(ctx context.Context, user model.User, req model.SellItemRequest) (model.SellItemResult, error) {
+	if req.CharacterID <= 0 {
+		return model.SellItemResult{}, invalid("character_id", "is required")
+	}
+	if req.ItemID <= 0 {
+		return model.SellItemResult{}, invalid("item_id", "is required")
+	}
+	if req.Quantity <= 0 {
+		req.Quantity = 1
+	}
+
+	char, err := s.characters.Get(ctx, req.CharacterID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.SellItemResult{}, ErrNotFound
+	}
+	if err != nil {
+		return model.SellItemResult{}, err
+	}
+	if !user.IsDM() && (char.UserID == nil || *char.UserID != user.ID) {
+		return model.SellItemResult{}, ErrForbidden
+	}
+
+	return s.repo.SellItem(ctx, req.CharacterID, req.ItemID, req.Quantity)
+}
+
 func normalizeShopItem(in model.ShopItemInput) (model.ShopItemInput, error) {
 	in.Name = strings.TrimSpace(in.Name)
 	in.Damage = strings.TrimSpace(in.Damage)

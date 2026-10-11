@@ -53,6 +53,23 @@ type BuyItemRequest struct {
 	Quantity    int   `json:"quantity"`
 }
 
+type SellItemRequest struct {
+	CharacterID int64 `json:"character_id"`
+	ItemID      int64 `json:"item_id"`
+	Quantity    int   `json:"quantity"`
+}
+
+type SellItemResult struct {
+	ItemName     string `json:"item_name"`
+	QuantitySold int    `json:"quantity_sold"`
+	RefundCP     int    `json:"refund_cp"`
+	CP           int    `json:"cp"`
+	SP           int    `json:"sp"`
+	EP           int    `json:"ep"`
+	GP           int    `json:"gp"`
+	PP           int    `json:"pp"`
+}
+
 type LootSplitRequest struct {
 	CampaignID int64 `json:"campaign_id"`
 	CP         int   `json:"cp"`
