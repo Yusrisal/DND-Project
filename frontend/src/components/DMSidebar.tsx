@@ -8,8 +8,9 @@ import { HandoutsPanel } from './HandoutsPanel'
 import { InvitePanel } from './InvitePanel'
 import { SavepointsPanel } from './SavepointsPanel'
 import { ShopPanel } from './ShopPanel'
+import { WikiPanel } from './WikiPanel'
 
-type Tab = 'board' | 'party' | 'bestiary' | 'shop' | 'dashboard' | 'lore' | 'saves' | 'setup'
+type Tab = 'board' | 'party' | 'bestiary' | 'shop' | 'dashboard' | 'lore' | 'wiki' | 'saves' | 'setup'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'board', label: 'board' },
@@ -18,6 +19,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'shop', label: 'shop' },
   { id: 'dashboard', label: 'tools' },
   { id: 'lore', label: 'lore' },
+  { id: 'wiki', label: 'wiki' },
   { id: 'saves', label: 'saves' },
   { id: 'setup', label: 'setup' },
 ]
@@ -331,6 +333,8 @@ export function DMSidebar(props: Props) {
           onError={props.onError}
         />
       )}
+
+      {tab === 'wiki' && <WikiPanel campaignId={props.campaign?.id ?? null} onError={props.onError} />}
 
       {tab === 'saves' && (
         <SavepointsPanel

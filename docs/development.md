@@ -107,7 +107,8 @@ frontend/
     api/           Fetch client and shared types
     components/    DMSidebar, PlayerSidebar, MapCanvas, ChatPanel,
                    CharacterSheetPanel, InitiativePanel, BestiaryPanel,
-                   AuthForm, InvitePanel, AccountBar
+                   WikiPanel (+ wiki-rules.ts, the only hand-written rules
+                   text), AuthForm, InvitePanel, AccountBar
     hooks/         useAuth (session), useSession (tokens, chat, rolls)
 docs/
 deploy/
@@ -119,7 +120,7 @@ Three columns, two arrangements, chosen by role in `App.tsx`:
 
 | Column | Player            | DM                                           |
 | ------ | ----------------- | -------------------------------------------- |
-| Left   | Their sheet       | Tabs: board, party, bestiary, setup          |
+| Left   | Tabs: sheet, shop, lore, wiki | Tabs: board, party, bestiary, shop, tools, lore, wiki, saves, setup |
 | Centre | The board         | The board                                    |
 | Right  | Initiative + chat | Initiative + chat                            |
 

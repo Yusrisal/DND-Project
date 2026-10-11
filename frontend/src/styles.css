@@ -231,6 +231,64 @@ section ul {
   padding: 0;
 }
 
+/* Wiki: seven sections will not fit one row of readable tabs in the sidebar. */
+.wiki-nav {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 6px;
+}
+
+.wiki-entry {
+  align-items: flex-start;
+}
+
+.wiki-tag {
+  color: #66fcf1;
+  font-size: 0.85em;
+}
+
+.wiki-body {
+  font-size: 0.85em;
+  margin: 2px 0;
+}
+
+/* A whole row that opens a stat block, so the hit area is the whole name. */
+.wiki-disclosure {
+  background: transparent;
+  border: none;
+  color: inherit;
+  display: block;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.wiki-disclosure:hover strong {
+  color: #66fcf1;
+}
+
+.wiki-detail {
+  border-top: 1px solid #262b3a;
+  margin-top: 6px;
+  padding-top: 6px;
+}
+
+.wiki-prose h3 {
+  color: #66fcf1;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin: 10px 0 4px;
+  text-transform: uppercase;
+}
+
+.wiki-prose p {
+  color: #a3abbd;
+  font-size: 11px;
+  line-height: 1.55;
+  margin: 0 0 6px;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

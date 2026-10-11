@@ -4,6 +4,7 @@ import { AccountBar } from './AccountBar'
 import { CharacterSheetPanel } from './CharacterSheetPanel'
 import { HandoutsPanel } from './HandoutsPanel'
 import { ShopPanel } from './ShopPanel'
+import { WikiPanel } from './WikiPanel'
 
 type Props = {
   campaignId: number | null
@@ -19,7 +20,14 @@ type Props = {
   onError: (error: unknown) => void
 }
 
-type Tab = 'sheet' | 'shop' | 'lore'
+type Tab = 'sheet' | 'shop' | 'lore' | 'wiki'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'sheet', label: 'sheet' },
+  { id: 'shop', label: 'shop' },
+  { id: 'lore', label: 'lore' },
+  { id: 'wiki', label: 'wiki' },
+]
 
 export function PlayerSidebar({
   campaignId,
@@ -41,24 +49,15 @@ export function PlayerSidebar({
       <AccountBar user={user} onLogout={onLogout} />
 
       <div className="tabs" style={{ marginBottom: '6px' }}>
-        <button
-          className={tab === 'sheet' ? 'tab active' : 'tab'}
-          onClick={() => setTab('sheet')}
-        >
-          sheet
-        </button>
-        <button
-          className={tab === 'shop' ? 'tab active' : 'tab'}
-          onClick={() => setTab('shop')}
-        >
-          shop
-        </button>
-        <button
-          className={tab === 'lore' ? 'tab active' : 'tab'}
-          onClick={() => setTab('lore')}
-        >
-          lore
-        </button>
+        {TABS.map(({ id, label }) => (
+          <button
+            key={id}
+            className={tab === id ? 'tab active' : 'tab'}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {tab === 'sheet' && (
@@ -117,6 +116,8 @@ export function PlayerSidebar({
           onError={onError}
         />
       )}
+
+      {tab === 'wiki' && <WikiPanel campaignId={campaignId} onError={onError} />}
     </aside>
   )
 }
