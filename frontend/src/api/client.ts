@@ -7,6 +7,7 @@ import type {
   CharacterItem,
   CharacterSheet,
   CharacterSpell,
+  ClassSkill,
   CompendiumItem,
   CompendiumSpell,
   Environment,
@@ -26,6 +27,7 @@ import type {
   MonsterStatBlock,
   Page,
   PauseInput,
+  PendingLootDrop,
   RetentionInput,
   Role,
   Savepoint,
@@ -223,6 +225,43 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(input),
   }),
+
+  // ARPG Progression & Skills
+  allocateStat: (characterId: number, ability: string) =>
+    request<CharacterSheet>(`/characters/${characterId}/allocate-stat`, json({ ability })),
+
+  listSkillTrees: (className?: string) =>
+    request<ClassSkill[]>(`/skill-trees${query({ class_name: className })}`),
+
+  learnSkill: (characterId: number, skillId: number) =>
+    request<CharacterSheet>(`/characters/${characterId}/learn-skill`, json({ skill_id: skillId })),
+
+  toggleSkillActive: (characterId: number, skillId: number, active: boolean) =>
+    request<CharacterSheet>(`/characters/${characterId}/toggle-skill`, json({ skill_id: skillId, active })),
+
+  useSkillScroll: (characterId: number, itemId: number) =>
+    request<CharacterSheet>(`/characters/${characterId}/use-scroll`, json({ item_id: itemId })),
+
+  transferItem: (characterId: number, input: { to_character_id: number; item_id: number; quantity?: number }) =>
+    request<CharacterSheet>(`/characters/${characterId}/transfer-item`, json(input)),
+
+  addXP: (characterId: number, amount: number) =>
+    request<Character>(`/characters/${characterId}/xp`, json({ amount })),
+
+  setLevelBlock: (characterId: number, blocked: boolean, reason?: string) =>
+    request<Character>(`/characters/${characterId}/level-block`, {
+      method: 'PUT',
+      body: JSON.stringify({ blocked, reason: reason ?? '' }),
+    }),
+
+  grantPoints: (characterId: number, statPoints: number, skillPoints: number) =>
+    request<Character>(`/characters/${characterId}/grant-points`, json({ stat_points: statPoints, skill_points: skillPoints })),
+
+  listPendingLoot: (campaignId: number) =>
+    request<PendingLootDrop[]>(`/pending-loot${query({ campaign_id: campaignId })}`),
+
+  resolvePendingLoot: (dropId: number, approve: boolean, reason?: string) =>
+    request<void>(`/pending-loot/${dropId}/resolve`, json({ approve, reason: reason ?? '' })),
 
   // Bestiary
 

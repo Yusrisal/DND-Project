@@ -13,18 +13,19 @@ import (
 // 5e bounds. They are generous rather than exact: the point is to stop a typo
 // or a crafted request writing nonsense, not to referee the rules.
 const (
-	maxCharacterLevel = 20
-	maxAbilityScore   = 30
+	maxCharacterLevel = 50
+	maxAbilityScore   = 50
 	maxSpellLevel     = 9
 	maxSlotCount      = 20
 )
 
 type CharacterService struct {
-	repo *repository.CharacterRepository
+	repo   *repository.CharacterRepository
+	skills *repository.SkillRepository
 }
 
-func NewCharacterService(repo *repository.CharacterRepository) *CharacterService {
-	return &CharacterService{repo: repo}
+func NewCharacterService(repo *repository.CharacterRepository, skills *repository.SkillRepository) *CharacterService {
+	return &CharacterService{repo: repo, skills: skills}
 }
 
 // List shows the DM every sheet in the campaign and a player only their own.
@@ -56,6 +57,10 @@ func (s *CharacterService) Sheet(ctx context.Context, user model.User, id int64)
 	if err != nil {
 		return model.CharacterSheet{}, err
 	}
+	var skillsLoaded []model.CharacterLearnedSkill
+	if s.skills != nil {
+		skillsLoaded, _ = s.skills.CharacterSkills(ctx, id)
+	}
 	slots, err := s.repo.Slots(ctx, id)
 	if err != nil {
 		return model.CharacterSheet{}, err
@@ -70,6 +75,7 @@ func (s *CharacterService) Sheet(ctx context.Context, user model.User, id int64)
 		Character:     character,
 		Items:         items,
 		Spells:        spells,
+		SkillsLoaded:  skillsLoaded,
 		Slots:         slots,
 		Proficiencies: proficiencies,
 		Skills:        skills,
@@ -432,7 +438,7 @@ func normalizeCharacter(in model.CharacterInput) (model.CharacterInput, error) {
 		in.Level = 1
 	}
 	if in.Level > maxCharacterLevel {
-		return in, invalid("level", "must be between 1 and 20")
+		return in, invalid("level", "must be between 1 and 50")
 	}
 	if in.HPMax < 0 || in.HPCurrent < 0 || in.HPTemp < 0 {
 		return in, invalid("hp_max", "cannot be negative")
@@ -510,6 +516,11 @@ func characterToInput(c model.Character) model.CharacterInput {
 		Class:                 c.Class,
 		Race:                  c.Race,
 		Level:                 c.Level,
+		XP:                    c.XP,
+		StatPoints:            c.StatPoints,
+		SkillPoints:           c.SkillPoints,
+		LevelBlocked:          c.LevelBlocked,
+		BlockReason:           c.BlockReason,
 		HPCurrent:             c.HPCurrent,
 		HPMax:                 c.HPMax,
 		HPTemp:                c.HPTemp,

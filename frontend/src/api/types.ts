@@ -261,6 +261,11 @@ export type Character = {
   class: string
   race: string
   level: number
+  xp: number
+  stat_points: number
+  skill_points: number
+  level_blocked: boolean
+  block_reason: string
   hp_current: number
   hp_max: number
   hp_temp: number
@@ -301,6 +306,55 @@ export type CharacterItem = {
   damage: string
   damage_type: string
   description: string
+  req_level: number
+  req_class: string
+  req_str: number
+  req_dex: number
+  req_con: number
+  req_int: number
+  req_wis: number
+  req_cha: number
+  teaches_skill_id?: number | null
+}
+
+export type ClassSkill = {
+  id: number
+  class_name: string
+  name: string
+  tier: number
+  req_level: number
+  parent_skill_id: number | null
+  damage: string
+  damage_type: string
+  cooldown_rounds: number
+  cost_resource: string
+  description: string
+}
+
+export type CharacterLearnedSkill = {
+  id: number
+  character_id: number
+  skill_id: number
+  is_active: boolean
+  learned_at: string
+  skill: ClassSkill
+}
+
+export type PendingLootDrop = {
+  id: number
+  campaign_id: number
+  map_id: number
+  monster_name: string
+  item_name: string
+  item_id: number | null
+  quantity: number
+  cp: number
+  sp: number
+  gp: number
+  status: 'pending' | 'approved' | 'rejected'
+  reject_reason: string
+  assigned_to_character_id: number | null
+  created_at: string
 }
 
 export type CharacterSpell = {
@@ -323,6 +377,7 @@ export type CharacterSheet = {
   character: Character
   items: CharacterItem[]
   spells: CharacterSpell[]
+  skills_loaded?: CharacterLearnedSkill[]
   slots: SpellSlot[]
   proficiencies: Proficiency[]
   /** Derived by the server so no client reimplements the proficiency rule. */

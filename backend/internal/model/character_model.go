@@ -45,6 +45,11 @@ type Character struct {
 	Class                 string    `json:"class"`
 	Race                  string    `json:"race"`
 	Level                 int       `json:"level"`
+	XP                    int64     `json:"xp"`
+	StatPoints            int       `json:"stat_points"`
+	SkillPoints           int       `json:"skill_points"`
+	LevelBlocked          bool      `json:"level_blocked"`
+	BlockReason           string    `json:"block_reason"`
 	HPCurrent             int       `json:"hp_current"`
 	HPMax                 int       `json:"hp_max"`
 	HPTemp                int       `json:"hp_temp"`
@@ -80,6 +85,11 @@ type CharacterInput struct {
 	Class                 string    `json:"class"`
 	Race                  string    `json:"race"`
 	Level                 int       `json:"level"`
+	XP                    int64     `json:"xp"`
+	StatPoints            int       `json:"stat_points"`
+	SkillPoints           int       `json:"skill_points"`
+	LevelBlocked          bool      `json:"level_blocked"`
+	BlockReason           string    `json:"block_reason"`
 	HPCurrent             int       `json:"hp_current"`
 	HPMax                 int       `json:"hp_max"`
 	HPTemp                int       `json:"hp_temp"`
@@ -105,19 +115,28 @@ type CharacterInput struct {
 }
 
 type CharacterItem struct {
-	ID          int64     `json:"id"`
-	CharacterID int64     `json:"character_id"`
-	Name        string    `json:"name"`
-	Quantity    int       `json:"quantity"`
-	Weight      float64   `json:"weight"`
-	CostCP      int       `json:"cost_cp"`
-	Equipped    bool      `json:"equipped"`
-	AttackBonus int       `json:"attack_bonus"`
-	Damage      string    `json:"damage"`
-	DamageType  string    `json:"damage_type"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             int64     `json:"id"`
+	CharacterID    int64     `json:"character_id"`
+	Name           string    `json:"name"`
+	Quantity       int       `json:"quantity"`
+	Weight         float64   `json:"weight"`
+	CostCP         int       `json:"cost_cp"`
+	Equipped       bool      `json:"equipped"`
+	AttackBonus    int       `json:"attack_bonus"`
+	Damage         string    `json:"damage"`
+	DamageType     string    `json:"damage_type"`
+	Description    string    `json:"description"`
+	ReqLevel       int       `json:"req_level"`
+	ReqClass       string    `json:"req_class"`
+	ReqStr         int       `json:"req_str"`
+	ReqDex         int       `json:"req_dex"`
+	ReqCon         int       `json:"req_con"`
+	ReqInt         int       `json:"req_int"`
+	ReqWis         int       `json:"req_wis"`
+	ReqCha         int       `json:"req_cha"`
+	TeachesSkillID *int64    `json:"teaches_skill_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // IsWeapon is the only thing that marks an inventory row as attackable: it has
@@ -125,15 +144,24 @@ type CharacterItem struct {
 func (i CharacterItem) IsWeapon() bool { return i.Damage != "" }
 
 type CharacterItemInput struct {
-	Name        string  `json:"name"`
-	Quantity    int     `json:"quantity"`
-	Weight      float64 `json:"weight"`
-	CostCP      int     `json:"cost_cp"`
-	Equipped    bool    `json:"equipped"`
-	AttackBonus int     `json:"attack_bonus"`
-	Damage      string  `json:"damage"`
-	DamageType  string  `json:"damage_type"`
-	Description string  `json:"description"`
+	Name           string  `json:"name"`
+	Quantity       int     `json:"quantity"`
+	Weight         float64 `json:"weight"`
+	CostCP         int     `json:"cost_cp"`
+	Equipped       bool    `json:"equipped"`
+	AttackBonus    int     `json:"attack_bonus"`
+	Damage         string  `json:"damage"`
+	DamageType     string  `json:"damage_type"`
+	Description    string  `json:"description"`
+	ReqLevel       int     `json:"req_level"`
+	ReqClass       string  `json:"req_class"`
+	ReqStr         int     `json:"req_str"`
+	ReqDex         int     `json:"req_dex"`
+	ReqCon         int     `json:"req_con"`
+	ReqInt         int     `json:"req_int"`
+	ReqWis         int     `json:"req_wis"`
+	ReqCha         int     `json:"req_cha"`
+	TeachesSkillID *int64  `json:"teaches_skill_id"`
 }
 
 // CharacterSpell is a free-text entry rather than a reference into a spell
@@ -174,11 +202,12 @@ type SpellSlotInput struct {
 // CharacterSheet is the whole sheet in one response, which is what the player
 // panel loads.
 type CharacterSheet struct {
-	Character     Character        `json:"character"`
-	Items         []CharacterItem  `json:"items"`
-	Spells        []CharacterSpell `json:"spells"`
-	Slots         []SpellSlot      `json:"slots"`
-	Proficiencies []Proficiency    `json:"proficiencies"`
+	Character     Character               `json:"character"`
+	Items         []CharacterItem         `json:"items"`
+	Spells        []CharacterSpell        `json:"spells"`
+	SkillsLoaded  []CharacterLearnedSkill `json:"skills_loaded"`
+	Slots         []SpellSlot             `json:"slots"`
+	Proficiencies []Proficiency           `json:"proficiencies"`
 	// Skills and Saves are derived, so no client has to reimplement the
 	// proficiency rule and then disagree with the server about it.
 	Skills []CheckModifier `json:"skills"`

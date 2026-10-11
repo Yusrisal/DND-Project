@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from './api/client'
 import { CONDITIONS } from './api/types'
-import type { Campaign, Character, GameMap, Token, User } from './api/types'
+import type { Campaign, Character, CharacterLearnedSkill, GameMap, Token, User } from './api/types'
 import { ActionBar } from './components/ActionBar'
 import { AuthForm } from './components/AuthForm'
 import { ChatPanel } from './components/ChatPanel'
@@ -45,6 +45,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   const [players, setPlayers] = useState<User[]>([])
   const [characters, setCharacters] = useState<Character[]>([])
   const [characterId, setCharacterId] = useState<number | null>(null)
+  const [activeSkills, setActiveSkills] = useState<CharacterLearnedSkill[]>([])
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   // The token an attack lands on. Clicking the board picks it.
@@ -137,6 +138,16 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   }, [isDM, report])
 
   // Switching maps invalidates the target, which belongs to the old board.
+  useEffect(() => {
+    if (!characterId) {
+      setActiveSkills([])
+      return
+    }
+    api
+      .sheet(characterId)
+      .then((s) => setActiveSkills(s.skills_loaded || []))
+      .catch(() => setActiveSkills([]))
+  }, [characterId])
   useEffect(() => {
     setTargetTokenId(null)
   }, [map?.id])
@@ -414,6 +425,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
 
         <ActionBar
           character={characters.find((c) => c.id === characterId) ?? null}
+          activeSkills={activeSkills}
           onSendChat={sendMessage}
           onRoll={roll}
         />

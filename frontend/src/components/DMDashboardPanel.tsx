@@ -9,11 +9,12 @@ import type {
   LootRollResult,
   Monster,
   MonsterDrop,
+  PendingLootDrop,
   StatusEffect,
   StatusEffectKind,
 } from '../api/types'
 
-type DashboardTab = 'environments' | 'items' | 'drops' | 'spells' | 'statuses'
+type DashboardTab = 'environments' | 'items' | 'drops' | 'spells' | 'statuses' | 'loot_review' | 'progression_control'
 
 type Props = {
   campaignId: number | null
@@ -70,6 +71,7 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
 
   // Status effects state
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([])
+  const [pendingDrops, setPendingDrops] = useState<PendingLootDrop[]>([])
   const [statusKind, setStatusKind] = useState<string>('')
   const [statusSearch, setStatusSearch] = useState('')
 
@@ -402,6 +404,68 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
     }
   }
 
+  // Refresh Pending Loot drops
+  const refreshPendingDrops = useCallback(() => {
+    if (!campaignId) return
+    api.listPendingLoot(campaignId).then(setPendingDrops).catch(onError)
+  }, [campaignId, onError])
+
+  useEffect(() => {
+    if (tab === 'loot_review') {
+      refreshPendingDrops()
+    }
+  }, [tab, refreshPendingDrops])
+
+  // Resolve pending loot (approve or reject with reason)
+  const resolveDrop = async (dropId: number, approve: boolean) => {
+    let reason = ''
+    if (!approve) {
+      reason = prompt('Enter rejection reason (e.g. Broken item, Monster fled):', 'DM veto') || 'Rejected by DM'
+    }
+    try {
+      await api.resolvePendingLoot(dropId, approve, reason)
+      refreshPendingDrops()
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  // Progression controls (XP, Level lock, Grant points)
+  const handleAwardXP = async (charId: number, charName: string) => {
+    const amt = Number(prompt(`Award XP to ${charName}:`, '500'))
+    if (!amt) return
+    try {
+      await api.addXP(charId, amt)
+      alert(`Awarded ${amt} XP to ${charName}!`)
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  const handleToggleLevelBlock = async (charId: number, currentBlocked: boolean, charName: string) => {
+    let reason = ''
+    if (!currentBlocked) {
+      reason = prompt(`Reason to lock ${charName}'s level up:`, 'Milestone not reached') || ''
+    }
+    try {
+      await api.setLevelBlock(charId, !currentBlocked, reason)
+      alert(`${charName} level up ${!currentBlocked ? 'BLOCKED' : 'UNLOCKED'}!`)
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  const handleGrantPoints = async (charId: number, charName: string) => {
+    const stats = Number(prompt(`Grant STAT points to ${charName}:`, '1')) || 0
+    const skills = Number(prompt(`Grant SKILL points to ${charName}:`, '1')) || 0
+    try {
+      await api.grantPoints(charId, stats, skills)
+      alert(`Granted +${stats} Stats, +${skills} Skills to ${charName}!`)
+    } catch (err) {
+      onError(err)
+    }
+  }
+
   // Status effect actions
   const addStatusEffect = async () => {
     const name = prompt('Status effect name (e.g. Blessed, Raging, Haste, Hex, Burning)')
@@ -481,13 +545,23 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
         </button>
         <button
           className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
-            tab === 'statuses'
+            tab === 'loot_review'
               ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
               : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
           }`}
-          onClick={() => setTab('statuses')}
+          onClick={() => setTab('loot_review')}
         >
-          STATUS
+          LOOT QUEUE
+        </button>
+        <button
+          className={`flex-1 min-w-[70px] py-1.5 px-1 text-[9px] font-bold uppercase transition-all ${
+            tab === 'progression_control'
+              ? 'bg-[#1f5156] text-[#66fcf1] border border-[#66fcf1]'
+              : 'bg-[#12141d] text-[#8e98af] border border-[#2b3145] hover:text-white'
+          }`}
+          onClick={() => setTab('progression_control')}
+        >
+          XP/LEVELS
         </button>
       </div>
 
@@ -868,6 +942,110 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* 6. Pending Loot Queue (DM Review) */}
+      {tab === 'loot_review' && (
+        <section className="space-y-2">
+          <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Pending Loot Queue</h2>
+            <button className="link" onClick={refreshPendingDrops}>
+              refresh
+            </button>
+          </header>
+          {pendingDrops.length === 0 && (
+            <p className="text-[10px] text-slate-500 italic text-center py-4">No pending monster loot drops waiting for approval.</p>
+          )}
+          <div className="space-y-1.5">
+            {pendingDrops.map((drop) => (
+              <div key={drop.id} className="p-2.5 bg-[#12151e] border border-[#2b3145] rounded space-y-1.5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="font-bold text-white text-[11px]">{drop.item_name} ×{drop.quantity}</span>
+                    <span className="text-[9px] text-slate-400 block">From: {drop.monster_name}</span>
+                    {(drop.gp > 0 || drop.sp > 0 || drop.cp > 0) && (
+                      <span className="text-[9px] text-amber-300">
+                        Coin: {drop.gp}gp {drop.sp}sp {drop.cp}cp
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => resolveDrop(drop.id, true)}
+                      className="px-2 py-0.5 bg-[#1e4a38] border border-[#2ed573] text-[#2ed573] text-[9px] font-bold uppercase rounded cursor-pointer hover:bg-[#2ed573] hover:text-black"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => resolveDrop(drop.id, false)}
+                      className="px-2 py-0.5 bg-[#3a1518] border border-[#ff4757] text-[#ff4757] text-[9px] font-bold uppercase rounded cursor-pointer hover:bg-[#ff4757] hover:text-white"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 7. XP & Level Gating Controls */}
+      {tab === 'progression_control' && (
+        <section className="space-y-2">
+          <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+            <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Character Progression & Level Lock</h2>
+          </header>
+          {characters.length === 0 && (
+            <p className="text-[10px] text-slate-500 italic">No characters in this campaign.</p>
+          )}
+          <div className="space-y-2">
+            {characters.map((char) => (
+              <div key={char.id} className="p-2.5 bg-[#12151e] border border-[#2b3145] rounded space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="font-bold text-[#66fcf1] text-[11px]">{char.name}</span>
+                    <span className="text-[10px] text-slate-300 ml-2">
+                      Level {char.level} · {char.xp} XP
+                    </span>
+                    <div className="text-[9px] text-slate-400">
+                      Unspent: {char.stat_points} Stats, {char.skill_points} Skills
+                    </div>
+                  </div>
+                  <div className="flex gap-1 flex-wrap justify-end">
+                    <button
+                      onClick={() => handleAwardXP(char.id, char.name)}
+                      className="px-2 py-0.5 bg-[#1f5156] border border-[#66fcf1] text-[#66fcf1] text-[9px] font-bold uppercase rounded hover:bg-[#45a29e] hover:text-black cursor-pointer"
+                    >
+                      + XP
+                    </button>
+                    <button
+                      onClick={() => handleGrantPoints(char.id, char.name)}
+                      className="px-2 py-0.5 bg-[#1e2333] border border-[#3a445d] text-slate-200 text-[9px] font-bold uppercase rounded hover:border-[#66fcf1] cursor-pointer"
+                    >
+                      Grant Pts
+                    </button>
+                    <button
+                      onClick={() => handleToggleLevelBlock(char.id, char.level_blocked, char.name)}
+                      className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded border cursor-pointer ${
+                        char.level_blocked
+                          ? 'bg-[#4a181c] border-[#ff4757] text-[#ff4757]'
+                          : 'bg-[#1e272e] border-slate-600 text-slate-300'
+                      }`}
+                    >
+                      {char.level_blocked ? 'Blocked' : 'Unlocked'}
+                    </button>
+                  </div>
+                </div>
+                {char.level_blocked && char.block_reason && (
+                  <div className="text-[9px] text-red-400 italic">
+                    Lock reason: {char.block_reason}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       )}

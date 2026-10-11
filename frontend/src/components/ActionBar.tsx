@@ -1,13 +1,14 @@
-import type { Character } from '../api/types'
+import type { Character, CharacterLearnedSkill } from '../api/types'
 import { playSpellSound } from '../utils/audio'
 
 type Props = {
   character: Character | null
+  activeSkills?: CharacterLearnedSkill[]
   onSendChat: (message: string) => void
   onRoll: (expression: string, label: string, characterId: number | null) => void
 }
 
-export function ActionBar({ character, onSendChat, onRoll }: Props) {
+export function ActionBar({ character, activeSkills = [], onSendChat, onRoll }: Props) {
   if (!character) return null
 
   const charName = character.name
@@ -76,6 +77,28 @@ export function ActionBar({ character, onSendChat, onRoll }: Props) {
       <button className="action-btn" title="Ready an action on trigger" onClick={handleReady}>
         ⏳ Ready
       </button>
+
+      {/* 10 Active Combat Skills Deck */}
+      {activeSkills.filter((s) => s.is_active).map((learned) => (
+        <button
+          key={learned.skill.id}
+          className="action-btn border-[#66fcf1] text-[#66fcf1]"
+          title={`${learned.skill.name}: ${learned.skill.description}`}
+          onClick={() => {
+            playSpellSound()
+            let msg = `✨ **${charName}** casts **${learned.skill.name}**!`
+            if (learned.skill.damage) {
+              msg += ` (Deals ${learned.skill.damage} ${learned.skill.damage_type})`
+            }
+            onSendChat(msg)
+            if (learned.skill.damage && learned.skill.damage.includes('d')) {
+              onRoll(learned.skill.damage, `${learned.skill.name} Damage`, character.id)
+            }
+          }}
+        >
+          🔮 {learned.skill.name}
+        </button>
+      ))}
     </div>
   )
 }

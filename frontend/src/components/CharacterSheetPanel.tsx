@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { ABILITY_KEYS } from '../api/types'
-import type { Abilities, CharacterSheet, CharacterStatus } from '../api/types'
+import type { Abilities, CharacterItem, CharacterSheet, CharacterStatus } from '../api/types'
+import { SkillTreeTab } from './SkillTreeTab'
 
 type Props = {
   characterId: number
@@ -13,7 +14,7 @@ type Props = {
   onError: (error: unknown) => void
 }
 
-type Tab = 'stats' | 'skills' | 'inventory' | 'spells'
+type Tab = 'stats' | 'progression' | 'skills' | 'inventory' | 'spells'
 
 const signed = (value: number) => (value >= 0 ? `+${value}` : String(value))
 
@@ -46,6 +47,41 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
   if (!sheet) return <section className="sheet"><p className="hint">Loading sheet…</p></section>
 
   const { character, items, spells, slots, skills, saves } = sheet
+
+  const handleAllocateStat = async (ability: string) => {
+    try {
+      setSheet(await api.allocateStat(character.id, ability))
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  const handleUseScroll = async (item: CharacterItem) => {
+    try {
+      setSheet(await api.useSkillScroll(character.id, item.id))
+      alert(`Learned skill from scroll: ${item.name}!`)
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  const handleTransferItem = async (item: CharacterItem) => {
+    const toCharInput = prompt('Enter recipient Character ID to transfer item to:')
+    if (!toCharInput) return
+    const toCharId = Number(toCharInput)
+    if (!toCharId) return
+    const qty = Number(prompt(`Quantity to send (max ${item.quantity}):`, '1')) || 1
+    try {
+      setSheet(await api.transferItem(character.id, {
+        to_character_id: toCharId,
+        item_id: item.id,
+        quantity: qty,
+      }))
+      alert(`Sent ${qty}x ${item.name} to character #${toCharId}!`)
+    } catch (err) {
+      onError(err)
+    }
+  }
 
   const adjustHP = async (delta: number) => {
     try {
@@ -331,33 +367,56 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
       </div>
 
       <div className="tabs">
-        {(['stats', 'skills', 'inventory', 'spells'] as Tab[]).map((name) => (
+        {(['stats', 'progression', 'skills', 'inventory', 'spells'] as Tab[]).map((name) => (
           <button
             key={name}
             className={tab === name ? 'tab active' : 'tab'}
             onClick={() => setTab(name)}
           >
-            {name}
+            {name === 'progression' ? 'tree' : name}
           </button>
         ))}
       </div>
 
       {tab === 'stats' && (
         <>
+          {character.stat_points > 0 && (
+            <div className="p-2 mb-2 bg-[#1f5156]/50 border-2 border-[#66fcf1] rounded text-[11px] text-[#66fcf1] flex items-center justify-between font-bold">
+              <span>✨ {character.stat_points} Stat Points Available!</span>
+              <span className="text-[10px] text-slate-300">Click [+] below to allocate</span>
+            </div>
+          )}
+
+          {character.level_blocked && (
+            <div className="p-2 mb-2 bg-red-950/60 border-2 border-red-500 rounded text-[11px] text-red-300 font-bold">
+              🛑 Level Up Blocked by DM: {character.block_reason || 'Milestone locked'}
+            </div>
+          )}
+
           <div className="abilities">
             {ABILITY_KEYS.map((key) => (
-              <button
-                key={key}
-                className="ability"
-                title={`Roll 1d20 ${signed(character.modifiers[key])}`}
-                onClick={() =>
-                  onRoll(`1d20${signed(character.modifiers[key])}`, `${SHORT[key]} check`, character.id)
-                }
-              >
-                <span className="ability-name">{SHORT[key]}</span>
-                <span className="ability-mod">{signed(character.modifiers[key])}</span>
-                <span className="ability-score">{character.abilities[key]}</span>
-              </button>
+              <div key={key} className="flex flex-col items-center">
+                <button
+                  className="ability w-full"
+                  title={`Roll 1d20 ${signed(character.modifiers[key])}`}
+                  onClick={() =>
+                    onRoll(`1d20${signed(character.modifiers[key])}`, `${SHORT[key]} check`, character.id)
+                  }
+                >
+                  <span className="ability-name">{SHORT[key]}</span>
+                  <span className="ability-mod">{signed(character.modifiers[key])}</span>
+                  <span className="ability-score">{character.abilities[key]}</span>
+                </button>
+                {character.stat_points > 0 && (
+                  <button
+                    onClick={() => handleAllocateStat(key)}
+                    className="mt-1 px-2 py-0.5 bg-[#1f5156] border border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black text-[9px] font-bold rounded uppercase cursor-pointer"
+                    title={`Add 1 point to ${SHORT[key]}`}
+                  >
+                    +1 {SHORT[key]}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
 
@@ -370,6 +429,10 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
             </div>
           )}
         </>
+      )}
+
+      {tab === 'progression' && (
+        <SkillTreeTab sheet={sheet} onRefresh={refresh} onError={onError} />
       )}
 
       {tab === 'skills' && (
@@ -470,6 +533,22 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
                     attack
                   </button>
                 )}
+                {item.teaches_skill_id && (
+                  <button
+                    className="pill on"
+                    title="Learn skill from this scroll"
+                    onClick={() => handleUseScroll(item)}
+                  >
+                    learn
+                  </button>
+                )}
+                <button
+                  className="link"
+                  title="Transfer item to another character"
+                  onClick={() => handleTransferItem(item)}
+                >
+                  send
+                </button>
                 <button className="link" onClick={() => api.deleteItem(item.id).then(refresh).catch(onError)}>
                   remove
                 </button>

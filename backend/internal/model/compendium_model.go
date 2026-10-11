@@ -30,32 +30,50 @@ type EnvironmentInput struct {
 }
 
 type CompendiumItem struct {
-	ID          int64     `json:"id"`
-	CampaignID  *int64    `json:"campaign_id"`
-	Name        string    `json:"name"`
-	Category    string    `json:"category"` // weapon, armor, potion, scroll, wondrous, gear
-	Rarity      string    `json:"rarity"`   // common, uncommon, rare, very rare, legendary
-	CostCP      int       `json:"cost_cp"`
-	Weight      float64   `json:"weight"`
-	AttackBonus int       `json:"attack_bonus"`
-	Damage      string    `json:"damage"`
-	DamageType  string    `json:"damage_type"`
-	Description string    `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             int64     `json:"id"`
+	CampaignID     *int64    `json:"campaign_id"`
+	Name           string    `json:"name"`
+	Category       string    `json:"category"` // weapon, armor, potion, scroll, wondrous, gear
+	Rarity         string    `json:"rarity"`   // common, uncommon, rare, very rare, legendary
+	CostCP         int       `json:"cost_cp"`
+	Weight         float64   `json:"weight"`
+	AttackBonus    int       `json:"attack_bonus"`
+	Damage         string    `json:"damage"`
+	DamageType     string    `json:"damage_type"`
+	Description    string    `json:"description"`
+	ReqLevel       int       `json:"req_level"`
+	ReqClass       string    `json:"req_class"`
+	ReqStr         int       `json:"req_str"`
+	ReqDex         int       `json:"req_dex"`
+	ReqCon         int       `json:"req_con"`
+	ReqInt         int       `json:"req_int"`
+	ReqWis         int       `json:"req_wis"`
+	ReqCha         int       `json:"req_cha"`
+	TeachesSkillID *int64    `json:"teaches_skill_id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type CompendiumItemInput struct {
-	CampaignID  *int64  `json:"campaign_id"`
-	Name        string  `json:"name"`
-	Category    string  `json:"category"`
-	Rarity      string  `json:"rarity"`
-	CostCP      int     `json:"cost_cp"`
-	Weight      float64 `json:"weight"`
-	AttackBonus int     `json:"attack_bonus"`
-	Damage      string  `json:"damage"`
-	DamageType  string  `json:"damage_type"`
-	Description string  `json:"description"`
+	CampaignID     *int64  `json:"campaign_id"`
+	Name           string  `json:"name"`
+	Category       string  `json:"category"`
+	Rarity         string  `json:"rarity"`
+	CostCP         int     `json:"cost_cp"`
+	Weight         float64 `json:"weight"`
+	AttackBonus    int     `json:"attack_bonus"`
+	Damage         string  `json:"damage"`
+	DamageType     string  `json:"damage_type"`
+	Description    string  `json:"description"`
+	ReqLevel       int     `json:"req_level"`
+	ReqClass       string  `json:"req_class"`
+	ReqStr         int     `json:"req_str"`
+	ReqDex         int     `json:"req_dex"`
+	ReqCon         int     `json:"req_con"`
+	ReqInt         int     `json:"req_int"`
+	ReqWis         int     `json:"req_wis"`
+	ReqCha         int     `json:"req_cha"`
+	TeachesSkillID *int64  `json:"teaches_skill_id"`
 }
 
 type MonsterDrop struct {

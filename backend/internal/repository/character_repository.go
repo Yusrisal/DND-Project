@@ -24,6 +24,7 @@ var characterSortColumns = []string{"id", "name", "level", "status", "created_at
 func CharacterSortColumns() []string { return characterSortColumns }
 
 const characterColumns = `id, campaign_id, user_id, status, name, class, race, level,
+	xp, stat_points, skill_points, level_blocked, block_reason,
 	hp_current, hp_max, hp_temp, armor_class, speed, proficiency_bonus,
 	cp, sp, ep, gp, pp,
 	strength, dexterity, constitution, intelligence, wisdom, charisma,
@@ -35,6 +36,7 @@ func scanCharacter(row interface{ Scan(...any) error }) (model.Character, error)
 	var c model.Character
 	err := row.Scan(
 		&c.ID, &c.CampaignID, &c.UserID, &c.Status, &c.Name, &c.Class, &c.Race, &c.Level,
+		&c.XP, &c.StatPoints, &c.SkillPoints, &c.LevelBlocked, &c.BlockReason,
 		&c.HPCurrent, &c.HPMax, &c.HPTemp, &c.ArmorClass, &c.Speed, &c.ProficiencyBonus,
 		&c.CP, &c.SP, &c.EP, &c.GP, &c.PP,
 		&c.Abilities.Strength, &c.Abilities.Dexterity, &c.Abilities.Constitution,
@@ -105,13 +107,15 @@ func (r *CharacterRepository) Create(ctx context.Context, in model.CharacterInpu
 
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO characters (campaign_id, user_id, status, name, class, race, level,
+			xp, stat_points, skill_points, level_blocked, block_reason,
 			hp_current, hp_max, hp_temp, armor_class, speed, proficiency_bonus,
 			cp, sp, ep, gp, pp,
 			strength, dexterity, constitution, intelligence, wisdom, charisma,
 			notes, death_save_successes, death_save_failures, hit_dice_total, hit_dice_used, hit_dice_die,
 			damage_resistances, damage_vulnerabilities, damage_immunities, condition_immunities)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		in.CampaignID, in.UserID, in.Status, in.Name, in.Class, in.Race, in.Level,
+		in.XP, in.StatPoints, in.SkillPoints, in.LevelBlocked, in.BlockReason,
 		in.HPCurrent, in.HPMax, in.HPTemp, in.ArmorClass, in.Speed, in.ProficiencyBonus,
 		in.CP, in.SP, in.EP, in.GP, in.PP,
 		in.Abilities.Strength, in.Abilities.Dexterity, in.Abilities.Constitution,
@@ -138,6 +142,7 @@ func (r *CharacterRepository) Update(ctx context.Context, id int64, in model.Cha
 
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE characters SET user_id = ?, status = ?, name = ?, class = ?, race = ?, level = ?,
+			xp = ?, stat_points = ?, skill_points = ?, level_blocked = ?, block_reason = ?,
 			hp_current = ?, hp_max = ?, hp_temp = ?, armor_class = ?, speed = ?, proficiency_bonus = ?,
 			cp = ?, sp = ?, ep = ?, gp = ?, pp = ?,
 			strength = ?, dexterity = ?, constitution = ?, intelligence = ?, wisdom = ?, charisma = ?,
@@ -146,6 +151,7 @@ func (r *CharacterRepository) Update(ctx context.Context, id int64, in model.Cha
 			damage_resistances = ?, damage_vulnerabilities = ?, damage_immunities = ?, condition_immunities = ?
 		 WHERE id = ?`,
 		in.UserID, in.Status, in.Name, in.Class, in.Race, in.Level,
+		in.XP, in.StatPoints, in.SkillPoints, in.LevelBlocked, in.BlockReason,
 		in.HPCurrent, in.HPMax, in.HPTemp, in.ArmorClass, in.Speed, in.ProficiencyBonus,
 		in.CP, in.SP, in.EP, in.GP, in.PP,
 		in.Abilities.Strength, in.Abilities.Dexterity, in.Abilities.Constitution,
@@ -215,7 +221,9 @@ func (r *CharacterRepository) ShortRest(ctx context.Context, id int64, hitDiceSp
 // Items
 
 const itemColumns = `id, character_id, name, quantity, weight, cost_cp, equipped,
-	attack_bonus, damage, damage_type, description, created_at, updated_at`
+	attack_bonus, damage, damage_type, description,
+	req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id,
+	created_at, updated_at`
 
 func (r *CharacterRepository) Items(ctx context.Context, characterID int64) ([]model.CharacterItem, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -229,7 +237,9 @@ func (r *CharacterRepository) Items(ctx context.Context, characterID int64) ([]m
 	for rows.Next() {
 		var i model.CharacterItem
 		if err := rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.CostCP, &i.Equipped,
-			&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description, &i.CreatedAt, &i.UpdatedAt); err != nil {
+			&i.AttackBonus, &i.Damage, &i.DamageType, &i.Description,
+			&i.ReqLevel, &i.ReqClass, &i.ReqStr, &i.ReqDex, &i.ReqCon, &i.ReqInt, &i.ReqWis, &i.ReqCha, &i.TeachesSkillID,
+			&i.CreatedAt, &i.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -238,12 +248,17 @@ func (r *CharacterRepository) Items(ctx context.Context, characterID int64) ([]m
 }
 
 func (r *CharacterRepository) CreateItem(ctx context.Context, characterID int64, in model.CharacterItemInput) (int64, error) {
+	if in.ReqLevel <= 0 {
+		in.ReqLevel = 1
+	}
 	res, err := r.db.ExecContext(ctx,
 		`INSERT INTO character_items (character_id, name, quantity, weight, cost_cp, equipped,
-			attack_bonus, damage, damage_type, description)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			attack_bonus, damage, damage_type, description,
+			req_level, req_class, req_str, req_dex, req_con, req_int, req_wis, req_cha, teaches_skill_id)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		characterID, in.Name, in.Quantity, in.Weight, in.CostCP, in.Equipped,
-		in.AttackBonus, in.Damage, in.DamageType, in.Description)
+		in.AttackBonus, in.Damage, in.DamageType, in.Description,
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID)
 	if err != nil {
 		return 0, err
 	}
@@ -251,11 +266,17 @@ func (r *CharacterRepository) CreateItem(ctx context.Context, characterID int64,
 }
 
 func (r *CharacterRepository) UpdateItem(ctx context.Context, id int64, in model.CharacterItemInput) error {
+	if in.ReqLevel <= 0 {
+		in.ReqLevel = 1
+	}
 	res, err := r.db.ExecContext(ctx,
 		`UPDATE character_items SET name = ?, quantity = ?, weight = ?, cost_cp = ?, equipped = ?,
-			attack_bonus = ?, damage = ?, damage_type = ?, description = ? WHERE id = ?`,
+			attack_bonus = ?, damage = ?, damage_type = ?, description = ?,
+			req_level = ?, req_class = ?, req_str = ?, req_dex = ?, req_con = ?, req_int = ?, req_wis = ?, req_cha = ?, teaches_skill_id = ?
+		 WHERE id = ?`,
 		in.Name, in.Quantity, in.Weight, in.CostCP, in.Equipped,
-		in.AttackBonus, in.Damage, in.DamageType, in.Description, id)
+		in.AttackBonus, in.Damage, in.DamageType, in.Description,
+		in.ReqLevel, in.ReqClass, in.ReqStr, in.ReqDex, in.ReqCon, in.ReqInt, in.ReqWis, in.ReqCha, in.TeachesSkillID, id)
 	if err != nil {
 		return err
 	}
