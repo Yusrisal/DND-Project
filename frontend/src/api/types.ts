@@ -323,6 +323,7 @@ export type ClassSkill = {
   name: string
   tier: number
   req_level: number
+  max_rank: number
   parent_skill_id: number | null
   damage: string
   damage_type: string
@@ -335,6 +336,7 @@ export type CharacterLearnedSkill = {
   id: number
   character_id: number
   skill_id: number
+  current_rank: number
   is_active: boolean
   learned_at: string
   skill: ClassSkill

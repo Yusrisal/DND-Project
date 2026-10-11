@@ -51,21 +51,36 @@ func (s *SkillService) LearnSkill(ctx context.Context, user model.User, charID, 
 		return invalid("req_level", fmt.Sprintf("requires level %d (current: %d)", skill.ReqLevel, char.Level))
 	}
 
-	// Parent skill prerequisite
-	if skill.ParentSkillID != nil {
-		learned, err := s.repo.CharacterSkills(ctx, charID)
-		if err != nil {
-			return err
+	// Check if already learned and can level up
+	learned, err := s.repo.CharacterSkills(ctx, charID)
+	if err != nil {
+		return err
+	}
+	var existing *model.CharacterLearnedSkill
+	for _, l := range learned {
+		if l.SkillID == skillID {
+			existing = &l
+			break
 		}
-		parentLearned := false
-		for _, l := range learned {
-			if l.SkillID == *skill.ParentSkillID {
-				parentLearned = true
-				break
+	}
+
+	if existing != nil {
+		if existing.CurrentRank >= skill.MaxRank {
+			return invalid("rank", fmt.Sprintf("skill is already at maximum rank (%d)", skill.MaxRank))
+		}
+	} else {
+		// New skill prerequisites check
+		if skill.ParentSkillID != nil {
+			parentLearned := false
+			for _, l := range learned {
+				if l.SkillID == *skill.ParentSkillID {
+					parentLearned = true
+					break
+				}
 			}
-		}
-		if !parentLearned {
-			return invalid("parent_skill", "prerequisite skill not unlocked yet")
+			if !parentLearned {
+				return invalid("parent_skill", "prerequisite skill not unlocked yet")
+			}
 		}
 	}
 

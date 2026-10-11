@@ -110,7 +110,7 @@ export function SkillTreeTab({ sheet, onRefresh, onError }: Props) {
                           <span>{skill.name}</span>
                           {isLearned && (
                             <span className="text-[9px] px-1 py-0.2 bg-[#1f5156] text-[#66fcf1] rounded uppercase">
-                              Learned
+                              Rank {learned?.current_rank ?? 1}/{skill.max_rank || 5}
                             </span>
                           )}
                         </div>
@@ -139,16 +139,28 @@ export function SkillTreeTab({ sheet, onRefresh, onError }: Props) {
                             Learn (1 SP)
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleToggle(skill.id, isActive)}
-                            className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border transition-colors ${
-                              isActive
-                                ? 'bg-[#1e4a38] border-[#2ed573] text-[#2ed573] hover:bg-red-950 hover:text-red-300 hover:border-red-600'
-                                : 'bg-[#1e2333] border-[#3a445d] text-slate-300 hover:border-[#66fcf1] hover:text-white'
-                            }`}
-                          >
-                            {isActive ? 'Active (Slot)' : 'Equip (Deck)'}
-                          </button>
+                          <div className="flex gap-1">
+                            {(learned?.current_rank ?? 1) < (skill.max_rank || 5) && (
+                              <button
+                                disabled={character.skill_points < 1}
+                                onClick={() => handleLearn(skill.id)}
+                                className="px-2 py-0.5 text-[9px] font-bold uppercase rounded border border-[#66fcf1] bg-[#1f5156] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black disabled:opacity-40 cursor-pointer"
+                                title="Upgrade rank with 1 skill point"
+                              >
+                                +Rank (1 SP)
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleToggle(skill.id, isActive)}
+                              className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border transition-colors ${
+                                isActive
+                                  ? 'bg-[#1e4a38] border-[#2ed573] text-[#2ed573] hover:bg-red-950 hover:text-red-300 hover:border-red-600'
+                                  : 'bg-[#1e2333] border-[#3a445d] text-slate-300 hover:border-[#66fcf1] hover:text-white'
+                              }`}
+                            >
+                              {isActive ? 'Active' : 'Equip'}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

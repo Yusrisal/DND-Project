@@ -9,6 +9,7 @@ type ClassSkill struct {
 	Name           string    `json:"name"`
 	Tier           int       `json:"tier"`
 	ReqLevel       int       `json:"req_level"`
+	MaxRank        int       `json:"max_rank"`
 	ParentSkillID  *int64    `json:"parent_skill_id"`
 	Damage         string    `json:"damage"`
 	DamageType     string    `json:"damage_type"`
@@ -24,6 +25,7 @@ type ClassSkillInput struct {
 	Name           string `json:"name"`
 	Tier           int    `json:"tier"`
 	ReqLevel       int    `json:"req_level"`
+	MaxRank        int    `json:"max_rank"`
 	ParentSkillID  *int64 `json:"parent_skill_id"`
 	Damage         string `json:"damage"`
 	DamageType     string `json:"damage_type"`
@@ -32,11 +34,12 @@ type ClassSkillInput struct {
 	Description    string `json:"description"`
 }
 
-// CharacterLearnedSkill tracks an unlocked skill and whether it's equipped in the active 10-slot deck.
+// CharacterLearnedSkill tracks an unlocked skill, its current rank, and active status.
 type CharacterLearnedSkill struct {
 	ID          int64      `json:"id"`
 	CharacterID int64      `json:"character_id"`
 	SkillID     int64      `json:"skill_id"`
+	CurrentRank int        `json:"current_rank"`
 	IsActive    bool       `json:"is_active"`
 	LearnedAt   time.Time  `json:"learned_at"`
 	Skill       ClassSkill `json:"skill"`

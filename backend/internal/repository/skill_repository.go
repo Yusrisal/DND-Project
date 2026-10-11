@@ -16,12 +16,12 @@ func NewSkillRepository(db *sql.DB) *SkillRepository {
 	return &SkillRepository{db: db}
 }
 
-const classSkillColumns = `id, class_name, name, tier, req_level, parent_skill_id,
+const classSkillColumns = `id, class_name, name, tier, req_level, max_rank, parent_skill_id,
 	damage, damage_type, cooldown_rounds, cost_resource, description, created_at, updated_at`
 
 func scanClassSkill(row interface{ Scan(...any) error }) (model.ClassSkill, error) {
 	var s model.ClassSkill
-	err := row.Scan(&s.ID, &s.ClassName, &s.Name, &s.Tier, &s.ReqLevel, &s.ParentSkillID,
+	err := row.Scan(&s.ID, &s.ClassName, &s.Name, &s.Tier, &s.ReqLevel, &s.MaxRank, &s.ParentSkillID,
 		&s.Damage, &s.DamageType, &s.CooldownRounds, &s.CostResource, &s.Description,
 		&s.CreatedAt, &s.UpdatedAt)
 	return s, err
@@ -59,8 +59,8 @@ func (r *SkillRepository) GetClassSkill(ctx context.Context, id int64) (model.Cl
 }
 
 func (r *SkillRepository) CharacterSkills(ctx context.Context, characterID int64) ([]model.CharacterLearnedSkill, error) {
-	query := `SELECT cs.id, cs.character_id, cs.skill_id, cs.is_active, cs.learned_at,
-		s.id, s.class_name, s.name, s.tier, s.req_level, s.parent_skill_id,
+	query := `SELECT cs.id, cs.character_id, cs.skill_id, cs.current_rank, cs.is_active, cs.learned_at,
+		s.id, s.class_name, s.name, s.tier, s.req_level, s.max_rank, s.parent_skill_id,
 		s.damage, s.damage_type, s.cooldown_rounds, s.cost_resource, s.description,
 		s.created_at, s.updated_at
 		FROM character_skills cs
@@ -79,8 +79,8 @@ func (r *SkillRepository) CharacterSkills(ctx context.Context, characterID int64
 		var item model.CharacterLearnedSkill
 		var s model.ClassSkill
 		if err := rows.Scan(
-			&item.ID, &item.CharacterID, &item.SkillID, &item.IsActive, &item.LearnedAt,
-			&s.ID, &s.ClassName, &s.Name, &s.Tier, &s.ReqLevel, &s.ParentSkillID,
+			&item.ID, &item.CharacterID, &item.SkillID, &item.CurrentRank, &item.IsActive, &item.LearnedAt,
+			&s.ID, &s.ClassName, &s.Name, &s.Tier, &s.ReqLevel, &s.MaxRank, &s.ParentSkillID,
 			&s.Damage, &s.DamageType, &s.CooldownRounds, &s.CostResource, &s.Description,
 			&s.CreatedAt, &s.UpdatedAt,
 		); err != nil {
@@ -93,9 +93,22 @@ func (r *SkillRepository) CharacterSkills(ctx context.Context, characterID int64
 }
 
 func (r *SkillRepository) LearnSkill(ctx context.Context, characterID, skillID int64) error {
+	// If already learned, upgrade rank
+	var currentRank int
+	err := r.db.QueryRowContext(ctx,
+		`SELECT current_rank FROM character_skills WHERE character_id = ? AND skill_id = ?`,
+		characterID, skillID).Scan(&currentRank)
+	if err == nil {
+		// Increment rank
+		_, err = r.db.ExecContext(ctx,
+			`UPDATE character_skills SET current_rank = current_rank + 1 WHERE character_id = ? AND skill_id = ?`,
+			characterID, skillID)
+		return err
+	}
+
 	// Count active skills to determine if this new skill can be active by default (max 10 active)
 	var activeCount int
-	err := r.db.QueryRowContext(ctx,
+	err = r.db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM character_skills WHERE character_id = ? AND is_active = 1`, characterID).Scan(&activeCount)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return err
@@ -103,9 +116,8 @@ func (r *SkillRepository) LearnSkill(ctx context.Context, characterID, skillID i
 
 	isActive := activeCount < 10
 	_, err = r.db.ExecContext(ctx,
-		`INSERT INTO character_skills (character_id, skill_id, is_active)
-		 VALUES (?, ?, ?)
-		 ON DUPLICATE KEY UPDATE is_active = is_active`, characterID, skillID, isActive)
+		`INSERT INTO character_skills (character_id, skill_id, current_rank, is_active)
+		 VALUES (?, ?, 1, ?)`, characterID, skillID, isActive)
 	return err
 }
 
