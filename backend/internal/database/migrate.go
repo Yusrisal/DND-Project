@@ -188,17 +188,18 @@ func parseName(filename string) (version int64, name, direction string, err erro
 	return version, rest[underscore+1:], direction, nil
 }
 
-// exec runs a migration file statement by statement, stripping comments and empty lines.
-// If an ALTER TABLE statement fails because a column or constraint already exists
-// (e.g. from a partially applied migration in MySQL/MariaDB which does not roll back DDL),
-// it ignores the duplicate error so the migration can complete safely.
+// exec runs a migration file statement by statement.
+// Comments and blank lines are stripped FIRST from the entire body so that semicolons
+// inside comments do not split statements improperly.
+// Idempotent DDL errors are ignored so interrupted migrations can resume cleanly.
 func exec(ctx context.Context, db *sql.DB, body string) error {
-	for _, statement := range strings.Split(body, ";") {
-		clean := cleanStatement(statement)
-		if clean == "" {
+	cleanBody := stripComments(body)
+	for _, statement := range strings.Split(cleanBody, ";") {
+		stmt := strings.TrimSpace(statement)
+		if stmt == "" {
 			continue
 		}
-		if _, err := db.ExecContext(ctx, clean); err != nil {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
 			if isIgnorableDDLError(err) {
 				slog.Warn("ignoring idempotent DDL error", "error", err)
 				continue
@@ -207,6 +208,18 @@ func exec(ctx context.Context, db *sql.DB, body string) error {
 		}
 	}
 	return nil
+}
+
+func stripComments(raw string) string {
+	var lines []string
+	for _, line := range strings.Split(raw, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func isIgnorableDDLError(err error) bool {
@@ -222,18 +235,4 @@ func isIgnorableDDLError(err error) bool {
 		strings.Contains(msg, "duplicate key name") ||
 		strings.Contains(msg, "already exists") ||
 		strings.Contains(msg, "duplicate foreign key")
-}
-
-func cleanStatement(raw string) string {
-	var lines []string
-	for _, line := range strings.Split(raw, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "--") || strings.HasPrefix(trimmed, "#") {
-			continue
-		}
-		if trimmed != "" {
-			lines = append(lines, line)
-		}
-	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
 }

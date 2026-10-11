@@ -1,7 +1,7 @@
 -- 1. Fog of War on Maps
 ALTER TABLE maps
     ADD COLUMN fog_enabled TINYINT(1) NOT NULL DEFAULT 0 AFTER height,
-    ADD COLUMN fog_revealed LONGTEXT NOT NULL DEFAULT ('[]') AFTER fog_enabled;
+    ADD COLUMN fog_revealed LONGTEXT NOT NULL AFTER fog_enabled;
 
 -- 2. Area of Effect (AoE) Spell & Hazard Templates
 CREATE TABLE aoe_templates (

@@ -1,4 +1,4 @@
--- The bestiary. A monster here is a template; spawning copies its vitals onto a
+-- The bestiary. A monster here is a template - spawning copies its vitals onto a
 -- token so each goblin takes its own damage, while monster_id keeps the link
 -- back to the stat block for actions and skills.
 CREATE TABLE monsters (
@@ -41,7 +41,7 @@ CREATE TABLE monster_proficiencies (
     CONSTRAINT fk_monster_proficiencies_monster FOREIGN KEY (monster_id) REFERENCES monsters (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- An action with a damage expression is an attack; one without is a trait the
+-- An action with a damage expression is an attack - one without is a trait the
 -- DM reads out, which is why damage is allowed to be empty.
 CREATE TABLE monster_actions (
     id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

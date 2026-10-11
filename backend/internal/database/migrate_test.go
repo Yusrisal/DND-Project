@@ -4,32 +4,24 @@ import (
 	"testing"
 )
 
-func TestCleanStatement(t *testing.T) {
-	input := `
--- One encounter per map at a time; active is cleared when combat ends.
-CREATE TABLE encounters (
+func TestStripComments(t *testing.T) {
+	input := `-- The bestiary. A monster here is a template; spawning copies its vitals onto a
+-- token so each goblin takes its own damage, while monster_id keeps the link
+CREATE TABLE monsters (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     PRIMARY KEY (id)
-)`
+);
+-- Another comment with semicolon; test
+ALTER TABLE tokens ADD COLUMN test INT;`
 
-	want := `CREATE TABLE encounters (
+	want := `CREATE TABLE monsters (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     PRIMARY KEY (id)
-)`
+);
+ALTER TABLE tokens ADD COLUMN test INT;`
 
-	got := cleanStatement(input)
+	got := stripComments(input)
 	if got != want {
-		t.Fatalf("cleanStatement mismatch.\nGot:\n%s\nWant:\n%s", got, want)
-	}
-}
-
-func TestCleanStatement_OnlyComments(t *testing.T) {
-	input := `
--- Tokens gain their own vitals
--- Another comment
-`
-	got := cleanStatement(input)
-	if got != "" {
-		t.Fatalf("expected empty string, got %q", got)
+		t.Fatalf("stripComments mismatch.\nGot:\n%s\nWant:\n%s", got, want)
 	}
 }
