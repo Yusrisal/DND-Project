@@ -70,14 +70,18 @@ export function DMSidebar(props: Props) {
   const [tab, setTab] = useState<Tab>('board')
 
   return (
-    <aside className="sidebar">
+    <aside className="w-[340px] flex-shrink-0 bg-[#161820] border-r border-[#232834] flex flex-col h-screen overflow-hidden text-slate-200">
       <AccountBar user={props.user} onLogout={props.onLogout} />
 
-      <div className="tabs">
+      <div className="grid grid-cols-4 gap-1 p-2 bg-[#12141a] border-b border-[#232834]">
         {TABS.map(({ id, label }) => (
           <button
             key={id}
-            className={tab === id ? 'tab active' : 'tab'}
+            className={`py-1.5 px-2 text-[11px] font-medium rounded capitalize transition-all border ${
+              tab === id
+                ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm shadow-indigo-600/30'
+                : 'bg-[#181b24] text-slate-400 border-[#262b3a] hover:bg-[#202430] hover:text-slate-200'
+            }`}
             onClick={() => setTab(id)}
           >
             {label}
@@ -85,62 +89,97 @@ export function DMSidebar(props: Props) {
         ))}
       </div>
 
-      {tab === 'board' && (
-        <>
-          <section>
-            <header>
-              <h2>Maps</h2>
-              <button onClick={props.onCreateMap}>+</button>
-            </header>
-            <ul>
-              {props.maps.map((item) => (
-                <li key={item.id}>
-                  <button
-                    className={item.id === props.map?.id ? 'row active' : 'row'}
-                    onClick={() => props.onSelectMap(item)}
-                  >
-                    {item.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {props.maps.length === 0 && <p className="hint">No maps in this campaign.</p>}
-          </section>
-
-          <section>
-            <header>
-              <h2>Tokens</h2>
-              <button onClick={props.onCreateToken}>+</button>
-            </header>
-            <ul>
-              {props.tokens.map((token) => (
-                <li
-                  key={token.id}
-                  className={token.id === props.targetTokenId ? 'token-row targeted' : 'token-row'}
+      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+        {tab === 'board' && (
+          <>
+            <section className="space-y-2">
+              <header className="flex items-center justify-between pb-1 border-b border-[#232834]">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Maps</h2>
+                <button
+                  onClick={props.onCreateMap}
+                  className="px-2 py-0.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold"
                 >
-                  <span className="swatch" style={{ background: token.color }} />
-                  <button className="token-name" onClick={() => props.onSelectToken(token.id)}>
-                    {token.name}
-                    <em className="owner">
-                      {token.hp_max > 0 &&
-                        `${token.hp_current}/${token.hp_max} hp · AC ${token.armor_class}`}
-                      {token.conditions.length > 0 && ` · ${token.conditions.join(', ')}`}
-                      {props.ownerName(token) && ` · ${props.ownerName(token)}`}
-                    </em>
-                  </button>
-                  <button className="link" onClick={() => props.onToggleCondition(token)}>
-                    cond
-                  </button>
-                  <button className="link" onClick={() => props.onDeleteToken(token.id)}>
-                    remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {props.tokens.length === 0 && <p className="hint">Nothing on this map yet.</p>}
-          </section>
-        </>
-      )}
+                  +
+                </button>
+              </header>
+              <ul className="space-y-1">
+                {props.maps.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors border ${
+                        item.id === props.map?.id
+                          ? 'bg-indigo-950/40 border-indigo-500/60 text-indigo-200 font-semibold'
+                          : 'bg-[#1a1d26] border-[#262b38] text-slate-300 hover:bg-[#202430]'
+                      }`}
+                      onClick={() => props.onSelectMap(item)}
+                    >
+                      {item.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {props.maps.length === 0 && (
+                <p className="text-xs text-slate-500 italic">No maps in this campaign.</p>
+              )}
+            </section>
+
+            <section className="space-y-2">
+              <header className="flex items-center justify-between pb-1 border-b border-[#232834]">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Tokens</h2>
+                <button
+                  onClick={props.onCreateToken}
+                  className="px-2 py-0.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold"
+                >
+                  +
+                </button>
+              </header>
+              <ul className="space-y-1.5">
+                {props.tokens.map((token) => (
+                  <li
+                    key={token.id}
+                    className={`flex items-center gap-2 p-2 rounded text-xs border transition-colors ${
+                      token.id === props.targetTokenId
+                        ? 'bg-amber-950/30 border-amber-500/50'
+                        : 'bg-[#1a1d26] border-[#262b38]'
+                    }`}
+                  >
+                    <span
+                      className="w-3.5 h-3.5 rounded-full flex-shrink-0"
+                      style={{ background: token.color }}
+                    />
+                    <button
+                      className="flex-1 text-left truncate text-slate-200 hover:text-white"
+                      onClick={() => props.onSelectToken(token.id)}
+                    >
+                      <div className="font-medium truncate">{token.name}</div>
+                      <div className="text-[10px] text-slate-400 truncate">
+                        {token.hp_max > 0 &&
+                          `${token.hp_current}/${token.hp_max} hp · AC ${token.armor_class}`}
+                        {token.conditions.length > 0 && ` · ${token.conditions.join(', ')}`}
+                        {props.ownerName(token) && ` · ${props.ownerName(token)}`}
+                      </div>
+                    </button>
+                    <button
+                      className="text-[11px] text-slate-400 hover:text-indigo-300 px-1"
+                      onClick={() => props.onToggleCondition(token)}
+                    >
+                      cond
+                    </button>
+                    <button
+                      className="text-[11px] text-slate-400 hover:text-red-400 px-1"
+                      onClick={() => props.onDeleteToken(token.id)}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {props.tokens.length === 0 && (
+                <p className="text-xs text-slate-500 italic">Nothing on this map yet.</p>
+              )}
+            </section>
+          </>
+        )}
 
       {tab === 'party' && (
         <>
@@ -257,6 +296,7 @@ export function DMSidebar(props: Props) {
           <InvitePanel onError={props.onError} />
         </>
       )}
+      </div>
     </aside>
   )
 }

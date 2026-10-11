@@ -87,19 +87,19 @@ export function ChatPanel({
   }
 
   return (
-    <aside className="chat">
-      <header className="chat-header flex items-center justify-between pb-2 border-b border-border">
+    <aside className="flex flex-col h-full bg-[#161820] text-slate-200">
+      <header className="flex items-center justify-between p-3 border-b border-[#232834]">
         <div className="flex items-center gap-2">
-          <h2 className="m-0 text-sm font-semibold">Table Log</h2>
-          <span className={connected ? 'dot online' : 'dot offline'} />
+          <h2 className="m-0 text-xs font-bold uppercase tracking-wider text-slate-400">Table Log</h2>
+          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
         </div>
 
         {/* DM Lingering / Retention Window Control */}
         {isDM && campaign ? (
-          <div className="flex items-center gap-1.5 text-xs text-muted">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span>Show:</span>
             <select
-              className="bg-bg border border-border rounded px-1.5 py-0.5 text-[11px] text-text"
+              className="bg-[#0f1116] border border-[#2b313e] rounded px-1.5 py-0.5 text-[11px] text-slate-200"
               value={retentionDays}
               onChange={(e) => handleRetentionChange(parseInt(e.target.value, 10))}
               title="Select how long chat and story history lingers for the table"
@@ -112,17 +112,17 @@ export function ChatPanel({
             </select>
           </div>
         ) : retentionDays > 0 ? (
-          <span className="text-[10px] text-muted">
+          <span className="text-[10px] text-slate-400">
             Showing past {retentionDays === 1 ? '24 hours' : `${retentionDays} days`}
           </span>
         ) : null}
       </header>
 
       {isDM && retentionDays > 0 && (
-        <div className="flex items-center justify-between px-2 py-1 bg-panel/50 text-[11px] text-muted border-b border-border">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-[#12141a] text-[11px] text-slate-400 border-b border-[#232834]">
           <span>{visibleFeed.length} entries visible to table</span>
           <button
-            className="link text-accent text-[11px]"
+            className="text-indigo-400 hover:text-indigo-300 text-[11px] bg-transparent border-none cursor-pointer"
             onClick={() => setShowFullArchive(!showFullArchive)}
           >
             {showFullArchive ? 'Apply Table Filter' : '👁️ View Full Archive'}
@@ -130,18 +130,18 @@ export function ChatPanel({
         </div>
       )}
 
-      <div className="chat-feed">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2.5 min-h-0">
         {visibleFeed.length === 0 && (
-          <p className="hint text-xs text-muted">No messages in this visibility window.</p>
+          <p className="text-xs text-slate-500 italic text-center py-4">No messages in this visibility window.</p>
         )}
 
         {visibleFeed.map((entry) =>
           entry.kind === 'message' ? (
-            <div key={`m${entry.message.id}`} className="feed-message">
-              <span className="feed-meta text-xs text-muted">
+            <div key={`m${entry.message.id}`} className="bg-[#12141a] border border-[#232834] rounded-lg p-2.5 text-xs">
+              <span className="text-[10px] text-slate-400 block mb-1">
                 {entry.message.author_name} · {time(entry.at)}
               </span>
-              <p className="m-0 text-sm">{entry.message.body}</p>
+              <p className="m-0 text-slate-200 text-xs leading-relaxed">{entry.message.body}</p>
             </div>
           ) : (
             <AttackOrRoll key={`r${entry.roll.id}`} roll={entry.roll} at={entry.at} />
@@ -150,25 +150,35 @@ export function ChatPanel({
         <div ref={endRef} />
       </div>
 
-      <div className="quick-rolls">
-        {QUICK_ROLLS.map((expression) => (
-          <button key={expression} onClick={() => onRoll(expression, '', characterId)}>
-            {expression}
-          </button>
-        ))}
-      </div>
+      <div className="p-2 border-t border-[#232834] bg-[#12141a] space-y-2">
+        <div className="flex flex-wrap gap-1">
+          {QUICK_ROLLS.map((expression) => (
+            <button
+              key={expression}
+              onClick={() => onRoll(expression, '', characterId)}
+              className="px-2 py-0.5 text-[11px] bg-[#1a1d26] hover:bg-indigo-600 hover:text-white border border-[#2b313e] rounded text-slate-300 transition-colors"
+            >
+              {expression}
+            </button>
+          ))}
+        </div>
 
-      <form className="chat-input" onSubmit={submit}>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Message, or /roll 1d20+5"
-          maxLength={2000}
-        />
-        <button type="submit" className="btn-primary">
-          Send
-        </button>
-      </form>
+        <form className="flex gap-1.5" onSubmit={submit}>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Message, or /roll 1d20+5"
+            maxLength={2000}
+            className="flex-1 bg-[#0f1116] border border-[#2b313e] rounded px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-xs font-semibold shadow-sm transition-colors"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </aside>
   )
 }

@@ -246,7 +246,7 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   }
 
   return (
-    <div className="app">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#0c0d12] text-[#e7e8ea]">
       {isDM ? (
         <DMSidebar
           user={user}
@@ -293,21 +293,30 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
         />
       )}
 
-      <main className="board">
-        <div className="status">
-          <span className={connected ? 'dot online' : 'dot offline'} />
-          {map ? `${map.name} — ${connected ? 'live' : 'reconnecting'}` : 'No map yet'}
+      <main className="flex-1 flex flex-col min-w-0 bg-[#0a0b0f] relative overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-2 bg-[#14161f] border-b border-[#232834] text-xs text-slate-300">
+          <span className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500'}`} />
+          <span className="font-medium text-slate-200">
+            {map ? `${map.name} — ${connected ? 'Live' : 'Reconnecting'}` : 'No active map'}
+          </span>
           {targetTokenId !== null && (
-            <span className="target-note">
-              targeting {tokens.find((t) => t.id === targetTokenId)?.name ?? 'something'}
-              <button className="link" onClick={() => setTargetTokenId(null)}>
-                clear
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-950/50 border border-indigo-700/50 text-indigo-300 text-[11px]">
+              targeting {tokens.find((t) => t.id === targetTokenId)?.name ?? 'Token'}
+              <button
+                className="text-slate-400 hover:text-white ml-1 bg-transparent border-none cursor-pointer"
+                onClick={() => setTargetTokenId(null)}
+              >
+                ✕
               </button>
             </span>
           )}
           {isDM && campaign && (
             <button
-              className={`btn text-xs ml-auto ${campaign.is_paused ? 'bg-amber-600 text-white border-amber-600 font-semibold' : ''}`}
+              className={`ml-auto px-2.5 py-1 text-xs rounded border transition-colors ${
+                campaign.is_paused
+                  ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500 font-semibold'
+                  : 'bg-[#1e222e] hover:bg-[#282d3d] text-slate-300 border-[#2d3446]'
+              }`}
               onClick={handleTogglePause}
               title={campaign.is_paused ? 'Resume live session' : 'Pause live session'}
             >
@@ -322,7 +331,10 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
               ☕ <strong>Session Paused</strong> — {campaign.pause_message || 'Game saved at checkpoint. Break time!'}
             </span>
             {isDM && (
-              <button className="btn-primary text-xs" onClick={handleTogglePause}>
+              <button
+                className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-semibold"
+                onClick={handleTogglePause}
+              >
                 Resume Live Session
               </button>
             )}
@@ -330,9 +342,13 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
         )}
 
         {(error || rejected) && (
-          <p className="error" onClick={() => setError(null)}>
-            {error ?? rejected}
-          </p>
+          <div
+            className="bg-red-500/10 border-b border-red-500/30 text-red-300 px-4 py-2 text-xs flex items-center justify-between cursor-pointer"
+            onClick={() => setError(null)}
+          >
+            <span>{error ?? rejected}</span>
+            <span className="text-[10px] text-red-400">Click to dismiss</span>
+          </div>
         )}
 
         <ActionBar
@@ -341,28 +357,33 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           onRoll={roll}
         />
 
-        {map ? (
-          <MapCanvas
-            map={map}
-            tokens={tokens}
-            canMove={canMove}
-            selectedTokenId={targetTokenId}
-            onSelect={setTargetTokenId}
-            onMove={moveToken}
-            isDM={isDM}
-            onUpdateMap={(updated) => {
-              setMap(updated)
-              setMaps((curr) => curr.map((m) => (m.id === updated.id ? updated : m)))
-            }}
-          />
-        ) : (
-          <p className="hint">
-            {isDM ? 'Create a map from the board tab to begin.' : 'Waiting for the DM to open a map.'}
-          </p>
-        )}
+        <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+          {map ? (
+            <MapCanvas
+              map={map}
+              tokens={tokens}
+              canMove={canMove}
+              selectedTokenId={targetTokenId}
+              onSelect={setTargetTokenId}
+              onMove={moveToken}
+              isDM={isDM}
+              onUpdateMap={(updated) => {
+                setMap(updated)
+                setMaps((curr) => curr.map((m) => (m.id === updated.id ? updated : m)))
+              }}
+            />
+          ) : (
+            <div className="text-center p-8 text-slate-500 space-y-2">
+              <div className="text-3xl">🗺️</div>
+              <p className="text-sm">
+                {isDM ? 'Select or create a map from the board tab to start playing.' : 'Waiting for the DM to open a map.'}
+              </p>
+            </div>
+          )}
+        </div>
       </main>
 
-      <div className="right">
+      <div className="w-[320px] flex-shrink-0 bg-[#161820] border-l border-[#232834] flex flex-col h-screen overflow-hidden">
         {map && (
           <InitiativePanel
             mapId={map.id}
