@@ -1,0 +1,17 @@
+# Normalise to LF everywhere. Without this, a checkout on Windows rewrites the
+# deploy script and the systemd unit with CRLF, and Debian then refuses them
+# with "bad interpreter: /bin/sh^M".
+* text=auto eol=lf
+
+# Belt and braces for the files that break loudest.
+deploy/dnd-deploy text eol=lf
+*.sh            text eol=lf
+*.service       text eol=lf
+*.sql           text eol=lf
+
+# Keep binaries out of it.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

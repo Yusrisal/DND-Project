@@ -71,8 +71,18 @@ load_config() {
 	# shellcheck disable=SC1090
 	. "$CONFIG"
 
-	: "${SSH_HOST:?set SSH_HOST in deploy/deploy.env}"
-	: "${SSH_USER:?set SSH_USER in deploy/deploy.env}"
+	# Local mode: the repository is already on the machine being deployed to, so
+	# there is nothing to ssh into. Leaving SSH_HOST empty, or naming this host,
+	# skips the whole transfer and installs straight from the working copy.
+	SSH_HOST=${SSH_HOST:-}
+	case "$SSH_HOST" in
+		''|local|localhost|127.0.0.1|::1) LOCAL=1 ;;
+		*) LOCAL=0 ;;
+	esac
+
+	if [ "$LOCAL" = 0 ]; then
+		: "${SSH_USER:?set SSH_USER in deploy/deploy.env, or clear SSH_HOST to deploy locally}"
+	fi
 	SSH_PORT=${SSH_PORT:-22}
 	REMOTE_DIR=${REMOTE_DIR:-/opt/dnd}
 	SERVICE=${SERVICE:-dnd-api}
@@ -83,23 +93,45 @@ load_config() {
 	GOOS_TARGET=${GOOS_TARGET:-linux}
 	GOARCH_TARGET=${GOARCH_TARGET:-amd64}
 
-	TARGET="$SSH_USER@$SSH_HOST"
+	if [ "$LOCAL" = 1 ]; then
+		TARGET="this machine"
+	else
+		TARGET="$SSH_USER@$SSH_HOST"
+	fi
 	STAGE="$ROOT/.deploy-stage"
 }
 
-# ssh_run executes a remote command. Commands that use sudo get a tty, so a
-# password prompt is visible rather than hanging in the dark.
+# ssh_run runs a command on the target. In local mode that is just a subshell;
+# over ssh, commands that use sudo get a tty so a password prompt is visible
+# rather than hanging in the dark.
 ssh_run() {
-	if [ -n "$SUDO" ]; then
+	if [ "$LOCAL" = 1 ]; then
+		sh -c "$*"
+	elif [ -n "$SUDO" ]; then
 		ssh -t -p "$SSH_PORT" "$TARGET" "$@"
 	else
 		ssh -p "$SSH_PORT" "$TARGET" "$@"
 	fi
 }
 
-ssh_quiet() { ssh -p "$SSH_PORT" "$TARGET" "$@"; }
+ssh_quiet() {
+	if [ "$LOCAL" = 1 ]; then
+		sh -c "$*"
+	else
+		ssh -p "$SSH_PORT" "$TARGET" "$@"
+	fi
+}
 
-need() { command -v "$1" >/dev/null 2>&1 || die "$1 is not installed locally"; }
+# put_file copies one file to the target, whichever side it is on.
+put_file() {
+	if [ "$LOCAL" = 1 ]; then
+		cp "$1" "$2"
+	else
+		scp -P "$SSH_PORT" "$1" "$TARGET:$2" >/dev/null
+	fi
+}
+
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 is not installed"; }
 
 # as_service runs a command on the remote as the service account.
 as_service() { printf '%s -u %s %s' "$SUDO" "$SERVICE_USER" "$1"; }
@@ -110,7 +142,11 @@ cmd_build() {
 	need go
 	need npm
 
-	say "building backend for $GOOS_TARGET/$GOARCH_TARGET"
+	if [ "$LOCAL" = 1 ]; then
+		say "building on this machine"
+	else
+		say "building backend for $GOOS_TARGET/$GOARCH_TARGET"
+	fi
 	rm -rf "$STAGE"
 	mkdir -p "$STAGE/bin"
 
@@ -156,7 +192,7 @@ cmd_setup() {
 	fi
 
 	say "installing the systemd unit"
-	scp -P "$SSH_PORT" "$SCRIPT_DIR/dnd-api.service" "$TARGET:/tmp/$SERVICE.service" >/dev/null
+	put_file "$SCRIPT_DIR/dnd-api.service" "/tmp/$SERVICE.service" 
 	ssh_run "
 		set -eu
 		$SUDO install -m 644 /tmp/$SERVICE.service /etc/systemd/system/$SERVICE.service
@@ -174,13 +210,29 @@ cmd_upload() {
 
 	STAMP=$(date +%Y%m%d-%H%M%S)
 	RELEASE="$REMOTE_DIR/releases/$STAMP"
+
+	if [ "$LOCAL" = 1 ]; then
+		# Already on the machine, so the build output is copied into place and
+		# there is nothing to pack or transfer.
+		say "installing release $STAMP"
+		ssh_run "
+			set -eu
+			$SUDO install -d -o '$SERVICE_USER' -g '$SERVICE_USER' '$RELEASE'
+			$SUDO cp -r '$STAGE/bin' '$STAGE/dist' '$RELEASE/'
+			$SUDO chown -R '$SERVICE_USER:$SERVICE_USER' '$RELEASE'
+			$SUDO chmod +x '$RELEASE/bin/dnd-api' '$RELEASE/bin/dnd-migrate'
+			echo 'installed $RELEASE'
+		"
+		return
+	fi
+
 	ARCHIVE="$ROOT/.deploy-stage.tar.gz"
 
 	say "packing release $STAMP"
 	tar -czf "$ARCHIVE" -C "$STAGE" bin dist
 
 	say "uploading to $TARGET"
-	scp -P "$SSH_PORT" "$ARCHIVE" "$TARGET:/tmp/dnd-$STAMP.tar.gz" >/dev/null
+	put_file "$ARCHIVE" "/tmp/dnd-$STAMP.tar.gz"
 	rm -f "$ARCHIVE"
 
 	ssh_run "
@@ -333,7 +385,12 @@ cmd_restart() {
 	remote_healthy && say "healthy" || die "unhealthy after restart — see logs"
 }
 
-cmd_shell() { ssh -t -p "$SSH_PORT" "$TARGET" "cd '$REMOTE_DIR' && exec \$SHELL -l"; }
+cmd_shell() {
+	if [ "$LOCAL" = 1 ]; then
+		cd "$REMOTE_DIR" && exec "${SHELL:-/bin/sh}" -l
+	fi
+	ssh -t -p "$SSH_PORT" "$TARGET" "cd '$REMOTE_DIR' && exec \$SHELL -l"
+}
 
 # ------------------------------------------------------------------------ main
 
