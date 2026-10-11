@@ -41,9 +41,146 @@
     cursor: pointer !important;
   }
 
+  /* Any button without its own Tailwind classes still reads as a button:
+     the bare "+" controls in the older panels were invisible otherwise. */
+  button:not([class]) {
+    background: #1e2333;
+    border: 2px solid #32394d;
+    color: #d5dbe8;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    min-height: 26px;
+    min-width: 26px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+
+  button:not([class]):hover {
+    border-color: #66fcf1;
+    color: #ffffff;
+  }
+
+  button:not([class]):disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
   button {
     cursor: pointer;
   }
+}
+
+/* Named button roles used by the panels. */
+.btn-add {
+  background: #1f5156;
+  border: 2px solid #66fcf1;
+  box-shadow: 1px 1px 0 #000;
+  color: #66fcf1;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.btn-add:hover {
+  background: #45a29e;
+  color: #000000;
+}
+
+.btn-danger,
+.link.danger {
+  background: #2d1214;
+  border: 2px solid #ff4757;
+  color: #ff6b81;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.btn-danger:hover,
+.link.danger:hover {
+  background: #ff4757;
+  color: #ffffff;
+}
+
+/* "link" is a low-emphasis action, but it still needs a hit area. */
+.link {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #8e98af;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 6px;
+  text-transform: uppercase;
+}
+
+.link:hover {
+  border-color: #ff4757;
+  color: #ff6b81;
+}
+
+.pill {
+  background: #1e2333;
+  border: 2px solid #32394d;
+  color: #8e98af;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  text-transform: uppercase;
+}
+
+.pill:hover {
+  border-color: #45a29e;
+  color: #e0e2ec;
+}
+
+.pill.on {
+  background: #1f5156;
+  border-color: #66fcf1;
+  color: #66fcf1;
+}
+
+.hint {
+  color: #57606f;
+  font-size: 10px;
+  font-style: italic;
+}
+
+section header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+section header h2,
+section header h3 {
+  color: #e0e2ec;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.list-row {
+  align-items: center;
+  border: 1px solid #262b3a;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+}
+
+.list ul,
+section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* Scrollbars */

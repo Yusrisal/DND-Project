@@ -128,8 +128,21 @@ export const api = {
   listMaps: (campaignId: number, params: ListParams = {}) =>
     request<Page<GameMap>>(`/maps${query({ campaign_id: campaignId, ...params })}`),
 
-  createMap: (input: { campaign_id: number; name: string; image_url?: string }) =>
-    request<GameMap>('/maps', json(input)),
+  createMap: (input: {
+    campaign_id: number
+    name: string
+    image_url?: string
+    grid_size?: number
+    width?: number
+    height?: number
+  }) => request<GameMap>('/maps', json(input)),
+
+  updateMap: (
+    id: number,
+    input: { name: string; image_url: string; grid_size: number; width: number; height: number },
+  ) => request<GameMap>(`/maps/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
+
+  deleteMap: (id: number) => request<void>(`/maps/${id}`, { method: 'DELETE' }),
 
   board: (mapId: number) => request<Token[]>(`/maps/${mapId}/tokens`),
 

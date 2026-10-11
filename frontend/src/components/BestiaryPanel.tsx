@@ -92,7 +92,9 @@ export function BestiaryPanel({ mapId, targetTokenId, onAttack, attackerTokenId,
     <section>
       <header>
         <h2>Bestiary</h2>
-        <button onClick={create}>+</button>
+        <button className="btn-add" onClick={create}>
+          + Add Monster
+        </button>
       </header>
 
       <input
@@ -150,7 +152,9 @@ export function BestiaryPanel({ mapId, targetTokenId, onAttack, attackerTokenId,
 
                 <header>
                   <h3>Actions</h3>
-                  <button onClick={() => addAction(monster.id)}>+</button>
+                  <button className="btn-add" onClick={() => addAction(monster.id)}>
+                    + Add Action
+                  </button>
                 </header>
 
                 {block.actions.length === 0 && <p className="hint">No actions yet.</p>}

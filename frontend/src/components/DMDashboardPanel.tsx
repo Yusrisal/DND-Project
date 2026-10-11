@@ -365,7 +365,35 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
     }
   }
 
-  const deleteSpell = async (id: number) => {
+  const editSpell = async (spell: CompendiumSpell) => {
+    const name = prompt('Spell or Skill name', spell.name)
+    if (!name) return
+    const level = Number(prompt('Level (0 for cantrip, 1-9)', String(spell.level)) ?? '') || 0
+    const school = prompt('School / Type', spell.school) ?? spell.school
+    const damage = (prompt('Damage / Healing roll (blank for none)', spell.damage) ?? '').trim()
+    const damageType = damage
+      ? (prompt('Damage type', spell.damage_type || 'fire') ?? '')
+      : ''
+    const description = prompt('Description', spell.description) ?? spell.description
+
+    try {
+      await api.updateCompendiumSpell(spell.id, {
+        ...spell,
+        name,
+        level,
+        school,
+        damage,
+        damage_type: damageType,
+        description,
+      })
+      refreshSpells()
+    } catch (err) {
+      onError(err)
+    }
+  }
+
+  const deleteSpell = async (id: number, name: string) => {
+    if (!confirm(`Delete "${name}" from the catalog?`)) return
     try {
       await api.deleteCompendiumSpell(id)
       refreshSpells()
@@ -533,7 +561,9 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
         <section>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Item Compendium</h2>
-            <button onClick={addCompendiumItem}>+ item</button>
+            <button className="btn-add" onClick={addCompendiumItem}>
+              + Add Item
+            </button>
           </header>
 
           <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
@@ -590,8 +620,8 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
         <section>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2>Monster Drops & Loot</h2>
-            <button onClick={addMonsterDrop} disabled={!selectedMonsterId}>
-              + drop
+            <button className="btn-add" onClick={addMonsterDrop} disabled={!selectedMonsterId}>
+              + Add Drop
             </button>
           </header>
 
@@ -678,8 +708,10 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
       {tab === 'spells' && (
         <section>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Spells & Skills Catalog</h2>
-            <button onClick={addSpell}>+ spell/skill</button>
+            <h2>Spells &amp; Skills Catalog</h2>
+            <button className="btn-add" onClick={addSpell}>
+              + Add Spell / Skill
+            </button>
           </header>
 
           <div style={{ display: 'flex', gap: '6px', margin: '6px 0' }}>
@@ -734,8 +766,15 @@ export function DMDashboardPanel({ campaignId, currentMapId, characters, onRoll,
                         roll
                       </button>
                     )}
-                    <button className="link" onClick={() => deleteSpell(sp.id)}>
-                      remove
+                    <button className="pill" onClick={() => editSpell(sp)} title="Edit this entry">
+                      edit
+                    </button>
+                    <button
+                      className="btn-danger"
+                      onClick={() => deleteSpell(sp.id, sp.name)}
+                      title="Delete this entry"
+                    >
+                      delete
                     </button>
                   </div>
                 </li>

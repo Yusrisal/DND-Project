@@ -37,6 +37,8 @@ type Props = {
   map: GameMap | null
   onSelectMap: (map: GameMap) => void
   onCreateMap: () => void
+  onEditMap: (map: GameMap) => void
+  onDeleteMap: (map: GameMap) => void
 
   characters: Character[]
   characterId: number | null
@@ -120,17 +122,61 @@ export function DMSidebar(props: Props) {
               </header>
               <ul className="space-y-1">
                 {props.maps.map((item) => (
-                  <li key={item.id}>
+                  <li
+                    key={item.id}
+                    className={`flex items-stretch gap-2 p-2 border-2 transition-all ${
+                      item.id === props.map?.id
+                        ? 'bg-[#1f5156] border-[#66fcf1] shadow-[2px_2px_0px_#051a1c]'
+                        : 'bg-[#12141d] border-[#2b3145] hover:border-[#45a29e]'
+                    }`}
+                  >
                     <button
-                      className={`w-full text-left p-2 border-2 text-[11px] font-bold transition-all ${
-                        item.id === props.map?.id
-                          ? 'bg-[#1f5156] border-[#66fcf1] text-[#66fcf1] shadow-[2px_2px_0px_#051a1c]'
-                          : 'bg-[#12141d] border-[#2b3145] text-[#8e98af] hover:border-[#45a29e] hover:text-white'
-                      }`}
+                      className="flex flex-1 items-center gap-2 min-w-0 text-left"
                       onClick={() => props.onSelectMap(item)}
+                      title={`Open ${item.name}`}
                     >
-                      🗺️ {item.name.toUpperCase()}
+                      {/* A thumbnail makes the list scannable at a glance. */}
+                      <span className="w-11 h-8 flex-shrink-0 border border-[#2b3145] bg-[#08090d] overflow-hidden flex items-center justify-center">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-[12px]">🗺️</span>
+                        )}
+                      </span>
+                      <span className="min-w-0">
+                        <span
+                          className={`block truncate text-[11px] font-bold ${
+                            item.id === props.map?.id ? 'text-[#66fcf1]' : 'text-[#8e98af]'
+                          }`}
+                        >
+                          {item.name.toUpperCase()}
+                        </span>
+                        <span className="block text-[9px] text-[#57606f]">
+                          {Math.floor(item.width / (item.grid_size || 50))} ×{' '}
+                          {Math.floor(item.height / (item.grid_size || 50))} sq
+                        </span>
+                      </span>
                     </button>
+                    <span className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => props.onEditMap(item)}
+                        className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-[#1e2333] border border-[#32394d] text-slate-300 hover:border-[#66fcf1] hover:text-white"
+                        title="Edit map image, grid and size"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => props.onDeleteMap(item)}
+                        className="px-1.5 py-0.5 text-[9px] font-bold uppercase bg-[#2d1214] border border-[#ff4757] text-[#ff6b81] hover:bg-[#ff4757] hover:text-white"
+                        title="Delete this map"
+                      >
+                        Del
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -202,7 +248,9 @@ export function DMSidebar(props: Props) {
           <section>
             <header>
               <h2>Characters</h2>
-              <button onClick={props.onCreateCharacter}>+</button>
+              <button className="btn-add" onClick={props.onCreateCharacter}>
+                + Add Character
+              </button>
             </header>
             <ul>
               {props.characters.map((item) => (

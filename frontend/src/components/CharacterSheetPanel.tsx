@@ -279,8 +279,12 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
             {character.hp_temp > 0 && <em className="temp">+{character.hp_temp}</em>}
           </span>
           <span className="vital-actions">
-            <button onClick={() => adjustHP(-1)}>−</button>
-            <button onClick={() => adjustHP(1)}>+</button>
+            <button className="pill" title="Lose 1 hit point" onClick={() => adjustHP(-1)}>
+              − HP
+            </button>
+            <button className="pill" title="Heal 1 hit point" onClick={() => adjustHP(1)}>
+              + HP
+            </button>
           </span>
         </div>
         <div className="vital">
@@ -432,7 +436,9 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
         <div className="list">
           <header>
             <h3>Carried</h3>
-            <button onClick={addItem}>+</button>
+            <button className="btn-add" onClick={addItem}>
+              + Add Item
+            </button>
           </header>
           {items.length === 0 && <p className="hint">Nothing carried.</p>}
           <ul>
@@ -507,7 +513,9 @@ export function CharacterSheetPanel({ characterId, onRoll, targetTokenId, onAtta
 
           <header>
             <h3>Known</h3>
-            <button onClick={addSpell}>+</button>
+            <button className="btn-add" onClick={addSpell}>
+              + Add Spell
+            </button>
           </header>
           {spells.length === 0 && <p className="hint">No spells.</p>}
           <ul>

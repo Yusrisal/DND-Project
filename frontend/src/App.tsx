@@ -9,6 +9,7 @@ import { DMSidebar } from './components/DMSidebar'
 import { InitiativePanel } from './components/InitiativePanel'
 import { InputModal } from './components/InputModal'
 import { MapCanvas } from './components/MapCanvas'
+import { MapFormModal, type MapFormValues } from './components/MapFormModal'
 import { PlayerSidebar } from './components/PlayerSidebar'
 import { useAuth } from './hooks/useAuth'
 import { useSession } from './hooks/useSession'
@@ -60,6 +61,9 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
     title: '',
     onSubmit: () => {},
   })
+
+  // null closed, 'new' creating, a map when editing.
+  const [mapForm, setMapForm] = useState<GameMap | 'new' | null>(null)
 
   const { tokens, feed, encounter, connected, rejected, moveToken, sendMessage, roll, attack } =
     useSession(map?.id ?? null)
@@ -166,21 +170,37 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
       alert('Please select or create a Campaign first in the [SETUP] tab!')
       return
     }
-    setModalConfig({
-      isOpen: true,
-      title: 'Create Map',
-      label: 'Map Name',
-      placeholder: 'e.g. Tavern Dungeon Level 1',
-      onSubmit: async (name) => {
-        try {
-          const created = await api.createMap({ campaign_id: campaign.id, name })
-          setMaps((current) => [...current, created])
-          setMap(created)
-        } catch (err) {
-          report(err)
-        }
-      },
-    })
+    setMapForm('new')
+  }
+
+  const submitMapForm = async (values: MapFormValues) => {
+    try {
+      if (mapForm === 'new') {
+        if (!campaign) return
+        const created = await api.createMap({ campaign_id: campaign.id, ...values })
+        setMaps((current) => [...current, created])
+        setMap(created)
+        return
+      }
+      if (!mapForm) return
+      const updated = await api.updateMap(mapForm.id, values)
+      setMaps((current) => current.map((m) => (m.id === updated.id ? updated : m)))
+      setMap((current) => (current?.id === updated.id ? updated : current))
+    } catch (err) {
+      report(err)
+    }
+  }
+
+  const removeMap = async (target: GameMap) => {
+    if (!confirm(`Delete map "${target.name}"? Its tokens and fog go with it.`)) return
+    try {
+      await api.deleteMap(target.id)
+      const remaining = maps.filter((m) => m.id !== target.id)
+      setMaps(remaining)
+      setMap((current) => (current?.id === target.id ? remaining[0] ?? null : current))
+    } catch (err) {
+      report(err)
+    }
   }
 
   const addToken = () => {
@@ -299,6 +319,8 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
           map={map}
           onSelectMap={setMap}
           onCreateMap={addMap}
+          onEditMap={setMapForm}
+          onDeleteMap={removeMap}
           characters={characters}
           characterId={characterId}
           onSelectCharacter={setCharacterId}
@@ -414,8 +436,16 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
             <div className="text-center p-8 text-[#57606f] space-y-3">
               <div className="text-4xl">⚔️</div>
               <p className="text-xs font-bold uppercase tracking-widest text-[#747d8c]">
-                {isDM ? 'SELECT OR CREATE A MAP TO BEGIN BATTLE' : 'WAITING FOR THE DM TO LOAD A MAP...'}
+                {isDM ? 'NO MAP ON THE TABLE YET' : 'WAITING FOR THE DM TO LOAD A MAP...'}
               </p>
+              {isDM && (
+                <button
+                  onClick={addMap}
+                  className="px-4 py-2 bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black font-bold text-xs uppercase shadow-[2px_2px_0px_#000]"
+                >
+                  + New Map
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -456,6 +486,14 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
         placeholder={modalConfig.placeholder}
         onClose={() => setModalConfig((prev) => ({ ...prev, isOpen: false }))}
         onSubmit={modalConfig.onSubmit}
+      />
+
+      <MapFormModal
+        key={mapForm === 'new' ? 'new' : (mapForm?.id ?? 'closed')}
+        isOpen={mapForm !== null}
+        map={mapForm === 'new' ? null : mapForm}
+        onClose={() => setMapForm(null)}
+        onSubmit={submitMapForm}
       />
     </div>
   )
