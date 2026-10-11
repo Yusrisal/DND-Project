@@ -3,72 +3,63 @@
 @layer base {
   :root {
     color-scheme: dark;
-    --pixel-font: "Press Start 2P", monospace;
-    --retro-font: "Silkscreen", monospace;
+    --bg-dark: #0a0b0f;
+    --card-dark: #12141c;
+    --border-dark: #262b3a;
   }
 
   body {
     margin: 0;
-    background-color: #0b0c10;
-    color: #c5c6c7;
-    font-family: var(--retro-font), monospace;
+    background-color: #0a0b0f;
+    color: #e2e8f0;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 13px;
-    line-height: 1.4;
-    image-rendering: pixelated;
+    line-height: 1.5;
   }
 
-  h1, h2, h3, .pixel-text {
-    font-family: var(--pixel-font), monospace;
+  /* Form & Input Reset: clear borders, background, padding everywhere */
+  input, select, textarea {
+    background-color: #07080c !important;
+    border: 1px solid #2b3145 !important;
+    border-radius: 6px !important;
+    color: #f1f5f9 !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: #6366f1 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25) !important;
+  }
+
+  input[type="checkbox"] {
+    width: auto !important;
+    accent-color: #6366f1 !important;
+    cursor: pointer !important;
   }
 
   button {
     cursor: pointer;
-    font-family: var(--retro-font), monospace;
   }
 }
 
-/* 8-bit Retro Box Shadows & Borders */
-@utility retro-box {
-  background-color: #12141d;
-  border: 3px solid #333a4d;
-  box-shadow: 3px 3px 0px #050608;
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-
-@utility retro-box-gold {
-  background-color: #16151f;
-  border: 3px solid #d4af37;
-  box-shadow: 3px 3px 0px #4d3a08;
+::-webkit-scrollbar-track {
+  background: #0a0b0f;
 }
-
-@utility retro-btn {
-  border: 2px solid #454d66;
-  box-shadow: 2px 2px 0px #0b0d14;
-  transition: all 0.05s ease;
-  &:hover {
-    border-color: #66fcf1;
-    color: #66fcf1;
-  }
-  &:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
-  }
+::-webkit-scrollbar-thumb {
+  background: #262b3a;
+  border-radius: 3px;
 }
-
-@utility retro-btn-primary {
-  background-color: #1f5156;
-  border: 2px solid #66fcf1;
-  color: #66fcf1;
-  box-shadow: 2px 2px 0px #0a1f21;
-  font-family: var(--retro-font), monospace;
-  font-weight: 700;
-  &:hover {
-    background-color: #45a29e;
-    color: #0b0c10;
-  }
-  &:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
-  }
+::-webkit-scrollbar-thumb:hover {
+  background: #3b435b;
 }
 
 .sidebar {

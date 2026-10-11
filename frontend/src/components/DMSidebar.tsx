@@ -93,45 +93,60 @@ export function DMSidebar(props: Props) {
       <div className="flex-1 overflow-y-auto p-3 space-y-4">
         {tab === 'board' && (
           <>
+            {!props.campaign && (
+              <div className="p-3 bg-[#2d1214] border-2 border-[#ff4757] text-[#ff6b81] text-[11px] space-y-2">
+                <p className="font-bold m-0 leading-tight">NO CAMPAIGN ACTIVE!</p>
+                <p className="text-[10px] m-0 text-slate-300">
+                  You must create or select a campaign before creating maps.
+                </p>
+                <button
+                  onClick={() => setTab('setup')}
+                  className="w-full py-1 bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black font-bold uppercase text-[10px]"
+                >
+                  GO TO SETUP →
+                </button>
+              </div>
+            )}
+
             <section className="space-y-2">
-              <header className="flex items-center justify-between pb-1 border-b border-[#232834]">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Maps</h2>
+              <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+                <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Maps</h2>
                 <button
                   onClick={props.onCreateMap}
-                  className="px-2 py-0.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold"
+                  className="px-2 py-0.5 text-[9px] font-bold bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black uppercase shadow-[1px_1px_0px_#000]"
                 >
-                  +
+                  + Add Map
                 </button>
               </header>
               <ul className="space-y-1">
                 {props.maps.map((item) => (
                   <li key={item.id}>
                     <button
-                      className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors border ${
+                      className={`w-full text-left p-2 border-2 text-[11px] font-bold transition-all ${
                         item.id === props.map?.id
-                          ? 'bg-indigo-950/40 border-indigo-500/60 text-indigo-200 font-semibold'
-                          : 'bg-[#1a1d26] border-[#262b38] text-slate-300 hover:bg-[#202430]'
+                          ? 'bg-[#1f5156] border-[#66fcf1] text-[#66fcf1] shadow-[2px_2px_0px_#051a1c]'
+                          : 'bg-[#12141d] border-[#2b3145] text-[#8e98af] hover:border-[#45a29e] hover:text-white'
                       }`}
                       onClick={() => props.onSelectMap(item)}
                     >
-                      {item.name}
+                      🗺️ {item.name.toUpperCase()}
                     </button>
                   </li>
                 ))}
               </ul>
               {props.maps.length === 0 && (
-                <p className="text-xs text-slate-500 italic">No maps in this campaign.</p>
+                <p className="text-[10px] text-[#57606f] italic text-center py-2">NO MAPS IN THIS CAMPAIGN.</p>
               )}
             </section>
 
             <section className="space-y-2">
-              <header className="flex items-center justify-between pb-1 border-b border-[#232834]">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Tokens</h2>
+              <header className="flex items-center justify-between pb-1 border-b border-[#2b3145]">
+                <h2 className="text-[10px] font-bold uppercase tracking-wider text-[#e0e2ec]">Tokens</h2>
                 <button
                   onClick={props.onCreateToken}
-                  className="px-2 py-0.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold"
+                  className="px-2 py-0.5 text-[9px] font-bold bg-[#1f5156] border-2 border-[#66fcf1] text-[#66fcf1] hover:bg-[#45a29e] hover:text-black uppercase shadow-[1px_1px_0px_#000]"
                 >
-                  +
+                  + Add Token
                 </button>
               </header>
               <ul className="space-y-1.5">

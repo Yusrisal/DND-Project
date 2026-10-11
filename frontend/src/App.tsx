@@ -142,7 +142,10 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   }
 
   const addMap = async () => {
-    if (!campaign) return
+    if (!campaign) {
+      alert('Please select or create a Campaign first in the [SETUP] tab!')
+      return
+    }
     const name = prompt('Map name')
     if (!name) return
     try {
@@ -155,7 +158,10 @@ function Table({ user, onLogout, onUnauthorized }: TableProps) {
   }
 
   const addToken = async () => {
-    if (!map) return
+    if (!map) {
+      alert('Please create or select a Map first before adding tokens!')
+      return
+    }
     const name = prompt('Token name')
     if (!name) return
 
