@@ -63,7 +63,6 @@
   height: 100vh;
 }
 
-/* Component styles expressed cleanly with Tailwind @utility */
 .sidebar {
   background: #1b1d23;
   border-right: 1px solid #2b2f39;
